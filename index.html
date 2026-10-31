@@ -440,8 +440,7 @@ const STUDY = {
       ['문의', '조유진 · c.yujin1127@gmail.com']
     ],
     agrees: [
-      '위 내용을 읽고 이해했으며, 연구 참여와 응답·이용 기록의 활용에 동의합니다.',
-      '만 19세 이상입니다.'
+      '위 내용을 읽고 이해했으며, 연구 참여와 응답·이용 기록의 활용에 동의합니다.'
     ],
     btn: '동의하고 참여 시작'
   },
@@ -1515,7 +1514,7 @@ function showConsent() {
   $('svIn').innerHTML = `<header class="sv-head"><h2>${esc(C.title)}</h2><p class="cs-lead">${esc(C.lead)}</p></header>
     <dl class="cs-list">${C.items.map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${esc(b)}</dd></div>`).join('')}</dl>
     <div class="cs-agrees">${(C.agrees || [C.agree]).map((a, k) => `<label class="cs-agree" for="csAgree${k}"><input type="checkbox" class="cs-chk" id="csAgree${k}"> <span>${esc(a)}</span></label>`).join('')}</div>
-    <p class="sv-err" id="svErr" hidden>모든 항목에 체크해야 참여를 시작할 수 있어요.</p>
+    <p class="sv-err" id="svErr" hidden>동의에 체크해야 참여를 시작할 수 있어요.</p>
     <div class="sv-foot"><button class="g-btn" id="svNext">${esc(C.btn)}</button></div>`;
   showSurvey(true);
   $('svNext').addEventListener('click', async () => {
