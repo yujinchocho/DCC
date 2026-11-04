@@ -479,14 +479,15 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 /* ================= 설정 ================= */
 const CFG = {
   // 공통 대기 시간 (초) — 사전검사·본실험 모두 적용
-  SCENE_MIN: 3,       // 시나리오 팝업 기본: '확인' 활성화까지 (1단계 홈, 3단계 트래블)
+  SCENE_MIN: 0,  // 상황 페이지: '○○ 이용하기' 버튼 대기 없음 (항상 활성)
   SCENE_MIN_BY: { tab: 2, notice_pre: 2, tab_resume: 2 },  // 2단계 팝업들: 탭 이동, 고지 직전(사전검사), T00 뒤(사전검사)
-  HOME_MIN: 5,        // 원 서비스 홈: '다음' 버튼이 나타나기까지
+  COACH_AFTER: 15,  // 홈: 하단 상품/추천 탭 말풍선이 뜨기까지
+  HOME_MIN: 15,  // 홈: '다음'이 활성화되기까지
   NOTICE_LOCK: 2,     // 고지: '확인' 버튼 잠금
   HL_DELAY: 0,        // 고지가 뜬 뒤 안내 문구 강조까지 — 강조 문구가 있는 버전만
-  EXPLORE_MIN: 10,    // 추천 탭: '탐색 완료'까지 최소 시간
+  EXPLORE_MIN: 15,  // 추천 탭: 고지를 닫은 뒤 '다음'이 활성화되기까지
   EXPLORE_SEEN: 0,
-  TRAVEL_MIN: 5,      // 씽킹트래블: '다음'이 활성화되기까지 최소 시간
+  TRAVEL_MIN: 15,  // 씽킹트래블: '다음'이 활성화되기까지
   BACK_SCOPE: 'all',   // 뒤로 가기 범위: 'all' = 어디든 (이미 낸 설문은 읽기 전용, 이미지 숨김) / 'stage' = 같은 단계 안에서만    // 추천 탭: 핵심 항목을 몇 개 이상 봐야 하는지 (0 = 시간만)
   HINT_AFTER: 10,     // 트래블: ⓘ를 누르지 않으면 힌트가 나타나기까지
   INFO_MIN: 2,        // 트래블: ⓘ 팝업을 합계 몇 초 이상 열어야 '다음'이 나타나는지
@@ -1239,7 +1240,7 @@ function showHome() {
 }
 // 홈에서 최소 시간이 지나면 하단 상품/추천 탭 위에 말풍선 안내
 function homeCoach() {
-  if (REVIEW || FLOW[P.idx] !== 'home' || P.idx < P.max || gateLeft()) return;
+  if (REVIEW || FLOW[P.idx] !== 'home' || P.idx < P.max || !P.first.home || now() - P.first.home < ms('COACH_AFTER')) return;
   if (S.screen === 'fin_home' || S.screen === 'ott_home') coach(true);
 }
 function showTab(withNotice, startIdx = 0) {
@@ -1304,7 +1305,8 @@ function scheduleUnlock() {
   else if (pg === 'home') r = rem('HOME_MIN');
   else if (pg === 'travel') r = rem('TRAVEL_MIN');
   else if (pg === 'tab' && S.noticeClosedT) r = S.noticeClosedT + ms('EXPLORE_MIN') - now();
-  if (r > 0) later(() => { updateNav(); if (!gateLeft()) { LOG.ev('next_ready', { page: pg }); if (pg === 'home') homeCoach(); } }, r + 30);
+  if (r > 0) later(() => { updateNav(); if (!gateLeft()) LOG.ev('next_ready', { page: pg }); }, r + 30);
+  if (pg === 'home') { const c = P.first.home + ms('COACH_AFTER') - now(); if (c > 0) later(homeCoach, c + 30); }
 }
 function enterPage(how) {
   clearTimers();
@@ -1691,7 +1693,7 @@ function renderLog() {
 }
 function setSpec() {
   const f = FAST ? ' (지금은 1/10)' : '';
-  $('spec').textContent = `상황 ${CFG.SCENE_MIN}초 · 홈 ${CFG.HOME_MIN}초 · 고지 닫기 ${CFG.NOTICE_LOCK}초 잠금 · 탐색 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
+  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈 ${CFG.HOME_MIN}초 · 고지 닫기 ${CFG.NOTICE_LOCK}초 잠금 · 탐색 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
 }
 function markCond() {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === S.cond));
