@@ -402,15 +402,29 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .sa-top b{color:#1f6fe5;font-weight:700}
 .sa-bar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#e7e7ea}
 .sa-bar i{display:block;height:100%}
-.sa-row{left:16px;right:12px;height:46px;display:flex!important;align-items:center;gap:10px}
-.sa-md{flex:none;width:18px;height:18px;border-radius:50%;color:#fff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.sa-lg{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800}
+.sa-row{left:16px;right:12px;height:58px;display:flex!important;align-items:center;gap:10px}
+.sa-md{flex:none;width:22px;height:23px;object-fit:contain}
+.sa-lg{flex:none;width:46px;height:46px;object-fit:contain}
 .sa-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .sa-tx .s{font-size:11.5px;color:#8a8a8a}.sa-tx .s em{font-style:normal;color:#1f6fe5;margin-left:6px}
 .sa-tx .m{font-size:14px;font-weight:600;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sa-tx .x{font-size:11.5px;color:#8a8a8a}
 .sa-ch{flex:none;color:#b5b5b5}
 .sv-foot{gap:10px;align-items:center}
+
+/* OTT 홈: 시청 중인 콘텐츠 크게 */
+.watch{width:192px}
+.wthumb{width:192px;height:108px}
+.wplay{left:80px;top:38px}
+/* 덜어내기: 주의 분산 요소는 회색 박스 */
+.gbox{border-radius:8px;background:#d9d9d9}
+.tcat{width:70px;height:100px;display:flex!important;flex-direction:column;align-items:center;gap:8px;padding-top:6px}
+.tcat .tc-ic{width:56px;height:56px;border-radius:16px;background:#ededef}
+.tcat .tc-nm{font-size:11px;color:#9a9a9a;white-space:nowrap}
+.h2.dim{color:#8a8a8a}
+.tgray{border-radius:16px;background:linear-gradient(180deg,#c4c4c6,#d2d2d4);color:#fff;padding:22px 24px;display:flex!important;flex-direction:column;gap:4px;text-align:left;font-size:15px;font-weight:600;line-height:1.45}
+.tgray small{font-size:12.5px;font-weight:500;opacity:.75}
+.tgray.lt{background:#e4e4e6;color:#b0b0b3;justify-content:flex-end;font-size:14px}
 </style>
 
 <div class="shell">
@@ -708,9 +722,9 @@ const SIMILAR = { blues: '우리들의 블루스', chachacha: '갯마을 차차�
 
 // 위반 장면: ⓘ 없이 'AI 추천 여행지' 아래 소제목으로 출처를 바로 보여 줘요.
 const TRAVEL = {
-  fin: { sub: '<b>씽킹뱅크</b>에서 제공받은 <b>결제처</b>와 <b>소비 패턴</b> 데이터로 만들어졌어요.',
-    cities: [['하노이', 'img/tr_hanoi.jpg', '이번 달 <b>베트남 커피 전문점</b>에서\n<b>4번</b> 결제했어요.\n현지식 커피 문화를 경험해보세요!'],
-             ['멜버른', 'img/tr_melbourne.jpg', '올해는 <b>스페셜티 카페</b>를\n<b>6개월</b> 이용했어요.\n로스터리와 브런치를 즐겨보세요!'],
+  fin: { sub: '<b>씽킹뱅크</b>에서 제공받은 <b>결제처</b>와 <b>소비 패턴 데이터</b>로 만들어졌어요.',
+    cities: [['하노이', 'img/tr_hanoi.jpg', '이번 달 <b>베트남 커피 전문점</b>에서\n<b>4번 결제</b>했어요.\n현지식 커피 문화를 경험해보세요!'],
+             ['멜버른', 'img/tr_melbourne.jpg', '올해는 <b>스페셜티 카페</b>를\n<b>6개월 이용</b>했어요.\n로스터리와 브런치를 즐겨보세요!'],
              ['도쿄', 'img/tr_tokyo.jpg', '최근 <b>카페와 디저트</b> 결제가\n많았어요.\n로스터리와 디저트를 찾아보세요!']] },
   ott: { sub: '<b>씽킹플레이</b>에서 제공받은 <b>시청 이력</b>과 <b>검색 기록</b>으로 만들어졌어요.',
     cities: [['제주도', 'img/tp_jeju.jpg', '이번 주 <b>&lt;리틀 포레스트&gt;</b>를\n<b>시청</b>하셨어요.\n제주 한 바퀴를 경험해보세요!'],
@@ -847,11 +861,11 @@ const dlogo = (bg, fg, size = 32, r = 12) => `<span class="dlogo" style="width:$
 /* ================= 금융 홈 ================= */
 function finHome() {
   const rows = [
-    ['#e0b13b', '#3d4a2c', '#e9efe0', '콩', '콩카페 · 베트남 커피', '이번 달 4번 결제했어요', '38,400원'],
-    ['#a3a8b0', '#1f3f7a', '#e3e9f4', 'P', '파리바게뜨 · 베이커리', '이번 달 3번 결제했어요', '21,700원'],
-    ['#c08a5a', '#2b2b2b', '#f6e9a8', 'M', '매머드커피 · 커피전문점', '이번 달 5번 결제했어요', '10,500원']
+    ['img/lg_cong.png', '콩카페', '베트남 커피', '이번 달 4번 결제했어요', '38,400원'],
+    ['img/lg_parisb.png', '파리바게뜨', '베이커리', '이번 달 3번 결제했어요', '21,700원'],
+    ['img/lg_mammoth.png', '매머드커피', '커피전문점', '이번 달 5번 결제했어요', '10,500원']
   ];
-  return `<div class="ct" style="height:1090px">
+  return `<div class="ct" style="height:860px">
   <div class="ab" style="left:16px;top:77px;display:flex;gap:10px">
     <span class="h2">씽킹은행</span>${T('다른 금융', 'fh_otherfin', 'h2', 'color:#a0a0a0', '다른 금융')}
   </div>
@@ -865,7 +879,7 @@ function finHome() {
     ${T('이체 기능', 'fh_transfer', 'ab pillbtn', 'left:300px;top:75px;width:46px', '이체')}
   </div>
   <span class="ab h2" style="left:16px;top:265px">소비</span>
-  <div class="ab box" style="left:16px;top:297px;width:370px;height:362px">
+  <div class="ab box" style="left:16px;top:297px;width:370px;height:398px">
     ${T('소비 내역', 'fh_spend', 'ab', 'inset:0;border-radius:18px')}
     <span class="ab" style="left:23.5px;top:27.5px;font-size:15px;font-weight:600">10월에 쓴 돈</span>
     <span class="ab" style="left:23.5px;top:54.5px;font-size:22px;font-weight:600">823,000원</span>
@@ -873,28 +887,17 @@ function finHome() {
     <div class="ab" style="left:20px;right:20px;top:100px;height:1px;background:#ececec"></div>
     <span class="ab sa-lbl" style="left:23.5px;top:116px">소비 분석</span>
     <span class="ab sa-top" style="left:23.5px;top:136px"><b>카페·베이커리</b>에 가장 많은 돈을 썼어요</span>
-    <div class="ab sa-bar" style="left:23.5px;right:23.5px;top:170px"><i style="width:32%;background:#3b82f6"></i><i style="width:15%;background:#f59e0b"></i><i style="width:10%;background:#10b981"></i></div>
-    ${rows.map(([md, fg, bg, lg, s, m, x], i) => `
-    <button class="ab sa-row" data-id="fh_top_${i}" data-t="결제 상세" style="top:${196 + i * 54}px">
-      <span class="sa-md" style="background:${md}">${i + 1}</span>
-      <span class="sa-lg" style="background:${bg};color:${fg}">${lg}</span>
-      <span class="sa-tx"><span class="s">${s}<em>최근 결제</em></span><span class="m">${m}</span><span class="x">${x}</span></span>
+    <div class="ab sa-bar" style="left:23.5px;right:23.5px;top:172px"><i style="width:32%;background:#3b82f6"></i><i style="width:15%;background:#f59e0b"></i><i style="width:11%;background:#10b981"></i></div>
+    ${rows.map(([lg, nm, cat, m, x], i) => `
+    <button class="ab sa-row" data-id="fh_top_${i}" data-t="결제 상세" style="top:${204 + i * 64}px">
+      <img class="sa-md" src="img/md_${i + 1}.png" alt="${i + 1}위">
+      <img class="sa-lg" src="${lg}" alt="${nm}">
+      <span class="sa-tx"><span class="s">${nm} · ${cat}<em>최근 결제</em></span><span class="m">${m}</span><span class="x">${x}</span></span>
       <span class="sa-ch">${IC.right(16)}</span>
     </button>`).join('')}
-  </div>
-  <div class="ab box" style="left:16px;top:675px;width:370px;height:110px">
-    ${T('결제예정 내역', 'fh_due', 'ab', 'inset:0;border-radius:18px')}
-    <span class="ab" style="left:23.5px;top:27.5px;font-size:15px;font-weight:600">11월 1일 결제예정금액</span>
-    <span class="ab" style="left:23.5px;top:54.5px;font-size:22px;font-weight:600">56,000원</span>
-    ${T('결제예정 내역', 'fh_due_btn', 'ab pillbtn', 'left:307.5px;top:54.5px;width:46px', '내역')}
-  </div>
-  <span class="ab h2" style="left:16px;top:809px">신용정보</span>
-  <div class="ab box" style="left:16px;top:841px;width:370px;height:80px">
-    ${T('신용점수 조회 기능', 'fh_credit', 'ab', 'inset:0;border-radius:18px')}
-    <span class="ab" style="left:23.5px;top:27.5px;font-size:22px;font-weight:600">내 신용점수</span>
-    ${T('변동 감지 기능', 'fh_credit_btn', 'ab pillbtn', 'left:277.5px;top:25.5px;width:76px', '변동 감지')}
   </div></div>`;
 }
+
 
 /* ================= 금융 상품 탭 ================= */
 function finProduct() {
@@ -927,22 +930,22 @@ function finProduct() {
 function ottHome() {
   const P = (src, id, x, y, w = 113, h = 158) => T('콘텐츠 상세', id, 'ab poster press', `left:${x}px;top:${y}px;width:${w}px;height:${h}px`, `<img src="img/${src}.png" alt="">`);
   const rowP = (list, top, pre) => `<div class="hs" data-drag style="top:${top}px;height:160px"><div class="row" style="gap:7px;padding:0 16px">${list.map((s, i) => T('콘텐츠 상세', pre + i, 'poster press', '', `<img src="img/${s}.png" alt="">`)).join('')}</div></div>`;
-  return `<div class="ct" style="height:1010px">
+  return `<div class="ct" style="height:1040px">
   <span class="ab h2" style="left:16px;top:77px">시청 중인 콘텐츠</span>
-  <div class="hs" data-drag style="top:109px;height:118px"><div class="row" style="gap:10px;padding:0 16px;align-items:flex-start">${WATCHING.map((w, i) => `
+  <div class="hs" data-drag style="top:109px;height:140px"><div class="row" style="gap:10px;padding:0 16px;align-items:flex-start">${WATCHING.map((w, i) => `
     <div class="watch">
       <button class="wthumb press" data-id="oh_watch_${i}" data-t="재생 기능"><img src="${w.img}" alt="" style="object-position:${w.pos}"><span class="wplay">${IC.play(14)}</span><span class="wbar"><i style="width:${w.prog}%"></i></span></button>
       <div class="wmeta"><span>${w.title}</span><button class="wmore" data-id="oh_watch_more_${i}" data-t="더보기 메뉴" aria-label="더보기">${IC.more(16)}</button></div>
     </div>`).join('')}</div></div>
-  <span class="ab h2" style="left:16px;top:251px">이번 주 대한민국의 TOP 10</span>
-  <div class="hs" data-drag style="top:283px;height:160px"><div class="row" style="gap:15px;padding:0 16px;align-items:flex-start">
+  <span class="ab h2" style="left:16px;top:271px">이번 주 대한민국의 TOP 10</span>
+  <div class="hs" data-drag style="top:303px;height:160px"><div class="row" style="gap:15px;padding:0 16px;align-items:flex-start">
     ${[['p_doctorx.png', 26], ['p_100days.png', 31], ['p_kimyeonkoung.jpg', 34]].map(([img, off], i) => `
     <div class="top10" style="width:${off + 113}px"><span class="tnum">${i + 1}</span>${T('콘텐츠 상세', 'oh_top_' + i, 'ab poster press', `left:${off}px;top:0`, `<img src="img/${img}" alt="">`)}</div>`).join('')}
   </div></div>
-  <span class="ab h2" style="left:16px;top:465px">한국 드라마</span>
-  ${rowP(['p_lotto', 'p_notyou', 'p_fourhands', 'p_kr4'], 497, 'oh_kr_')}
-  <span class="ab h2" style="left:16px;top:679px">해외 드라마</span>
-  ${rowP(['p_os1', 'p_drama', 'p_michael', 'p_hailmary'], 711, 'oh_os_')}
+  <span class="ab h2" style="left:16px;top:485px">한국 드라마</span>
+  ${rowP(['p_lotto', 'p_notyou', 'p_fourhands', 'p_kr4'], 517, 'oh_kr_')}
+  <span class="ab h2" style="left:16px;top:699px">해외 드라마</span>
+  ${rowP(['p_os1', 'p_drama', 'p_michael', 'p_hailmary'], 731, 'oh_os_')}
   </div>`;
 }
 
@@ -955,7 +958,7 @@ function ottRec() {
   <span class="ab h2" style="left:16px;top:512px">자주 찾은 시골 힐링 드라마</span>
   ${rowP(['p_chachacha', 'p_blues', 'p_samdal', 'p_coast'], 544, 'or_r1_')}
   <span class="ab h2" style="left:16px;top:726px">정주행 추천 콘텐츠</span>
-  ${rowP(['p_woo', 'p_coast2', 'p_snow', 'p_suzume'], 758, 'or_r2_')}
+  <div class="hs" style="top:758px;height:160px"><div class="row" style="gap:7px;padding:0 16px">${[0, 1, 2, 3].map(() => `<div class="poster gbox"></div>`).join('')}</div></div>
   </div>`;
 }
 
@@ -965,18 +968,18 @@ function travel(d) {
   const cats = [['항공권', 'cat_flight'], ['숙소', 'cat_hotel'], ['투어·티켓', 'cat_tour'], ['쿠폰·혜택', 'cat_coupon'], ['렌터카·보험', 'cat_rent'], ['여행 매거진', 'cat_mag']];
   return `<div class="ct" style="height:1060px">
   <div class="hs" data-drag style="top:56px;height:100px"><div class="row" style="padding-left:8px;padding-right:10px">
-    ${cats.map(([n, img]) => `<button class="press" data-id="tr_cat_${img}" data-t="${n}" style="width:70px;height:100px"><img src="img/${img}.png" width="70" height="100" alt="${n}"></button>`).join('')}
+    ${cats.map(([n, img]) => `<button class="tcat" data-id="tr_cat_${img}" data-t="${n}"><span class="tc-ic"></span><span class="tc-nm">${n}</span></button>`).join('')}
   </div></div>
   <span class="ab h2" style="left:16px;top:174px">AI 추천 여행지</span>
   <p class="tsub" id="trSub">${D.sub}</p>
   <div class="hs" data-drag style="top:228px;height:280px"><div class="row" style="gap:11px;padding:4px 16px 0">${D.cities.map(([n, img, ds], i) =>
     `<button class="tcard press" data-id="tr_city_${i}" data-t="${n} 여행 정보"><img src="${img}" alt=""><span class="nm">${n}</span><span class="ds">${ds}</span></button>`).join('')}</div></div>
-  <span class="ab h2" style="left:16px;top:530px">지금 유용한 정보!</span>
-  <button class="ab press" data-id="tr_banner" data-t="씽킹보험 안내" style="left:16px;top:564px;width:370px;height:164px;border-radius:16px;overflow:hidden"><img src="img/tr_banner.jpg" width="370" height="164" alt="씽킹보험은 출귀국/경유 항공기 지연 시간만큼 보험금을 드려요!"></button>
-  <span class="ab h2" style="left:16px;top:756px">이번 주 여행 매거진</span>
+  <span class="ab h2 dim" style="left:16px;top:530px">지금 유용한 정보!</span>
+  <button class="ab tgray" data-id="tr_banner" data-t="씽킹보험 안내" style="left:16px;top:564px;width:370px;height:164px"><span>씽킹보험은 출귀국/경유 항공기<br>지연 시간만큼 보험금을 드려요!</span><small>(2시간 이상 지연시, 특약)</small></button>
+  <span class="ab h2 dim" style="left:16px;top:756px">이번 주 여행 매거진</span>
   <div class="hs" data-drag style="top:790px;height:164px"><div class="row" style="gap:12px;padding:0 16px">
-    <button class="press" data-id="tr_mag_0" data-t="여행 매거진 기사" style="width:240px;height:164px;border-radius:16px;overflow:hidden"><img src="img/tr_mag1.jpg" width="240" height="164" alt="주말에 다녀오기 좋은 밤도깨비 해외 여행지 6"></button>
-    <button class="press" data-id="tr_mag_1" data-t="여행 매거진 기사" style="width:240px;height:164px;border-radius:16px;overflow:hidden"><img src="img/tr_mag2.jpg" width="240" height="164" alt="창밖으로 단풍이 쏟아지는 서울 근교 카페 추천"></button>
+    <button class="tgray lt" data-id="tr_mag_0" data-t="여행 매거진 기사" style="width:240px;height:164px"><span>주말에 다녀오기 좋은<br>밤도깨비 해외 여행지 6</span></button>
+    <button class="tgray lt" data-id="tr_mag_1" data-t="여행 매거진 기사" style="width:240px;height:164px"><span>창밖으로 단풍이 쏟아지는<br>서울 근교 카페 추천</span></button>
   </div></div>
   </div>`;
 }
@@ -1002,7 +1005,7 @@ function ottDetail(i) {
   const h = HEROES[i];
   const AGE = { ALL: '#1FA14A', '12': '#E3A400', '15': '#E8730C', '18': '#D7263D' };
   return `<div class="od-media"><img src="${h.img}" alt="" style="object-position:${h.focus}">
-    <button class="od-close" data-id="dt_back" data-act="back" aria-label="닫기">${IC.down(28)}</button>
+    <button class="od-close" data-id="dt_back" data-act="back" aria-label="뒤로">${IC.left(26)}</button>
     <button class="od-play" data-id="dt_play_media" data-t="재생 기능" aria-label="재생">${IC.play(24)}</button>
   </div>
   <div class="od-pad">
