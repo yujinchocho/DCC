@@ -368,6 +368,15 @@ body.frameless .sv-tb{top:-16px;padding-top:16px;margin-top:-16px}
 .ch.row{flex-direction:row}
 .ch.row button{flex:1}
 .sv-in.ro .q{opacity:.6;pointer-events:none}
+.g-btn.lock{background:#c9c9cc;color:#fff}
+.sv-next{min-width:96px}
+/* 선택형: 박스 없이 동그라미 + 글자, 위아래로 */
+.ch{gap:2px}
+.ch.row{flex-direction:column}
+.ch button{border:0;background:none;padding:7px 2px;gap:14px;align-items:center;font-size:15px;border-radius:8px}
+.ch .dot{width:22px;height:22px;border:1.6px solid var(--ink);margin-top:0}
+.ch button[aria-checked="true"]{border:0;background:none}
+.ch button[aria-checked="true"] .dot{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 44%,var(--panel) 50%)}
 .sv-ro{margin:0;font-size:13.5px;color:var(--muted);font-weight:600}
 .scn{display:flex;flex-direction:column;gap:12px;padding:30px 4px 0}
 .scn h2{margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:-.3px}
@@ -477,18 +486,18 @@ const CFG = {
   EXPLORE_MIN: 10,    // 추천 탭: '탐색 완료'까지 최소 시간
   EXPLORE_SEEN: 0,
   TRAVEL_MIN: 5,      // 씽킹트래블: '다음'이 활성화되기까지 최소 시간
-  BACK_SCOPE: 'stage', // 뒤로 가기 범위: 'stage' = 같은 단계 안(이미 낸 설문 이전으로는 못 감) / 'all' = 어디든(낸 설문은 읽기 전용)    // 추천 탭: 핵심 항목을 몇 개 이상 봐야 하는지 (0 = 시간만)
+  BACK_SCOPE: 'all',   // 뒤로 가기 범위: 'all' = 어디든 (이미 낸 설문은 읽기 전용, 이미지 숨김) / 'stage' = 같은 단계 안에서만    // 추천 탭: 핵심 항목을 몇 개 이상 봐야 하는지 (0 = 시간만)
   HINT_AFTER: 10,     // 트래블: ⓘ를 누르지 않으면 힌트가 나타나기까지
   INFO_MIN: 2,        // 트래블: ⓘ 팝업을 합계 몇 초 이상 열어야 '다음'이 나타나는지
   TASK_PROMPT: true,  // 고지 확인 후 가벼운 과제 문구 표시 (사전검사는 문구 설정으로 끔)
   LOG_ENDPOINT: ''    // Google Apps Script 웹앱 주소 (연구 버전 설정에서 지정)
 };
-// 연구 버전 설정 — 본실험. (미니 재검사는 이 파일을 복사해 study·prefix·endpoint만 바꿔요.)
+// 연구 버전 설정 — 미니 재검사(MiniEx). 본실험과 같은 화면·문항이고, 아래 study·prefix·endpoint만 달라요.
 const STUDY = {
   mode: 'main',
-  study: 'main',        // 브라우저 저장 키 구분
-  prefix: 'MS',         // 참여자 번호 앞 글자 (MS001…)
-  // ↓ 본실험용 새 구글 시트의 Apps Script 웹 앱 주소(…/exec)를 넣어 주세요. 비어 있으면 응답이 저장되지 않아요.
+  study: 'miniex',      // 브라우저 저장 키 구분
+  prefix: 'RT',         // 참여자 번호 앞 글자 (RT001…)
+  // ↓ 미니 재검사용 새 구글 시트의 Apps Script 웹 앱 주소(…/exec)를 넣어 주세요. 비어 있으면 응답이 저장되지 않아요.
   endpoint: '',
   conds: ['fin-a', 'fin-b', 'fin-c', 'ott-a', 'ott-b', 'ott-c'],
 
@@ -524,8 +533,8 @@ const STUDY = {
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
-      { id: 'T0_q1', no: '1', type: 'choice', text: '귀하의 연령대는 무엇입니까?', options: ['만 19세 미만', '만 19~29세', '만 30~39세', '만 40~49세', '만 50~59세', '만 60세 이상'] },
-      { id: 'T0_q2', no: '2', type: 'choice', text: '귀하의 성별은 무엇입니까?', options: ['여성', '남성'] },
+      { id: 'T0_q1', no: '1', type: 'choice', text: '귀하의 성별은 무엇입니까?', options: ['여성', '남성'] },
+      { id: 'T0_q2', no: '2', type: 'choice', text: '귀하의 연령대는 무엇입니까?', options: ['만 19세 미만', '만 19~29세', '만 30~39세', '만 40~49세', '만 50~59세', '만 60세 이상'] },
       { id: 'T0_q3_1', no: '3-1', type: 'choice', text: '최근 1개월 동안 모바일 금융 앱(은행·카드·간편결제)을 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
       { id: 'T0_q3_2', no: '3-2', type: 'yesno', text: '최근 1개월 동안 금융 앱에서 AI가 골라 주는 맞춤 추천(상품, 서비스 등)을 이용한 적이 있습니까?' },
       { id: 'T0_q3_3', no: '3-3', type: 'choice', text: '최근 1개월 동안 OTT 서비스(영상 스트리밍)를 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
@@ -1217,12 +1226,18 @@ const TITLES = { home: d => d === 'fin' ? '씽킹뱅크' : '씽킹플레이', ta
 const P = { idx: 0, max: 0, first: {}, enterT: 0, revisit: false, done: {}, cur: {}, left: {} };
 const isSurvey = pg => !!(STUDY.surveys && STUDY.surveys[pg]);
 const topbar = title => `<div class="tbar"><button class="tb-btn l" data-nav="back" aria-label="이전 화면">${IC.left(20)}</button><div class="tb-title">${title}</div><button class="tb-btn r" data-nav="next" aria-label="다음 화면">${IC.right(20)}</button></div>`;
-const svTop = () => `<div class="sv-tb"><button class="nb" data-nav="back" aria-label="이전 화면">${IC.left(20)}</button><button class="nb" data-nav="next" aria-label="다음 화면">${IC.right(20)}</button></div>`;
+// 설문·상황 페이지: 위에는 뒤로 가기만 (자극이 기억나지 않을 때 다시 보는 용도), 다음은 페이지 맨 아래
+const svTop = () => `<div class="sv-tb"><button class="nb" data-nav="back" aria-label="이전 화면">${IC.left(20)}</button></div>`;
 
 function showHome() {
   const d = S.dom;
   setScreen(d === 'fin' ? 'fin_home' : 'ott_home', d === 'fin' ? finHome() : ottHome(), navHTML(d, 'home'), { after: topbar(TITLES.home(d)) });
-  updateNav();
+  updateNav(); homeCoach();
+}
+// 홈에서 최소 시간이 지나면 하단 상품/추천 탭 위에 말풍선 안내
+function homeCoach() {
+  if (REVIEW || FLOW[P.idx] !== 'home' || P.idx < P.max || gateLeft()) return;
+  if (S.screen === 'fin_home' || S.screen === 'ott_home') coach(true);
 }
 function showTab(withNotice, startIdx = 0) {
   if (S.dom === 'fin') {
@@ -1286,7 +1301,7 @@ function scheduleUnlock() {
   else if (pg === 'home') r = rem('HOME_MIN');
   else if (pg === 'travel') r = rem('TRAVEL_MIN');
   else if (pg === 'tab' && S.noticeClosedT) r = S.noticeClosedT + ms('EXPLORE_MIN') - now();
-  if (r > 0) later(() => { updateNav(); if (!gateLeft()) LOG.ev('next_ready', { page: pg }); }, r + 30);
+  if (r > 0) later(() => { updateNav(); if (!gateLeft()) { LOG.ev('next_ready', { page: pg }); if (pg === 'home') homeCoach(); } }, r + 30);
 }
 function enterPage(how) {
   clearTimers();
@@ -1490,8 +1505,9 @@ function renderSurvey(id) {
   const sub = pg.sub && canBack() ? `<p>화면은 <span class="bk" aria-label="이전">${IC.left(12)}</span> 버튼을 눌러 다시 볼 수 있어요.</p>` : '';
   $('svIn').innerHTML = svTop() + `<header class="sv-head"><h2>${esc(pg.title)}</h2>${sub}</header>`
     + (ro ? `<p class="sv-ro">이미 제출한 응답이에요. 바꿀 수 없어요.</p>` : '')
-    + pg.items.map(itemHTML).join('')
-    + `<p class="sv-err" id="svErr" hidden>응답하지 않은 문항이 있어요. 표시된 문항에 답해 주세요.</p>`;
+    + pg.items.filter(it => !(ro && it.type === 'fig')).map(itemHTML).join('')
+    + `<p class="sv-err" id="svErr" hidden>응답하지 않은 문항이 있어요. 표시된 문항에 답해 주세요.</p>`
+    + `<div class="sv-foot"><button class="g-btn sv-next" data-nav="next">다음</button></div>`;
   showSurvey(true);
   const box = $('svIn');
   Object.entries(cur).forEach(([q, v]) => {
