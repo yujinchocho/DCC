@@ -425,6 +425,10 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .tgray{border-radius:16px;background:linear-gradient(180deg,#c4c4c6,#d2d2d4);color:#fff;padding:22px 24px;display:flex!important;flex-direction:column;gap:4px;text-align:left;font-size:15px;font-weight:600;line-height:1.45}
 .tgray small{font-size:12.5px;font-weight:500;opacity:.75}
 .tgray.lt{background:#e4e4e6;color:#b0b0b3;justify-content:flex-end;font-size:14px}
+
+/* 연구 참여 안내: 시안처럼 항목 제목 위, 본문 아래 · 단어 단위 줄바꿈 */
+.cs-list>div{grid-template-columns:minmax(0,1fr)!important;gap:6px!important;padding:14px 16px!important}
+.cs-list dd{word-break:keep-all;overflow-wrap:anywhere}
 </style>
 
 <div class="shell">
@@ -521,11 +525,11 @@ const STUDY = {
     title: '연구 참여 안내',
     lead: '안녕하세요. 연구에 참여해주셔서 감사합니다.',
     items: [
-      ['연구 소개', '이 연구는 홍익대학교 대학원 시각디자인학과 ‘디자인씽킹과코크리에이션’ 수업의 일환으로 진행됩니다. AI 추천 기능이 있는 앱을 이용할 때 사람들이 화면을 어떻게 받아들이는지 알아보고자 합니다.'],
-      ['진행 방법', '가상의 앱 화면을 세 단계에 걸쳐 살펴보고, 각 단계 사이마다 직전에 확인한 화면에 대한 질문에 답합니다. **소요시간은 약 10분**입니다. 정해진 답은 따로 없으며, 실제로 서비스를 이용하는 상황이라고 생각하고 느낀 대로 답해 주세요. 모바일과 PC 모두 참여할 수 있으며, 진행 중에는 페이지 자체(카카오톡, Chrome, Safari 등)의 **새로고침이나 뒤로 가기를 누르지 말아 주세요.**'],
-      ['수집 정보와 보관', '설문 응답, 화면 이용 기록(누른 버튼, 화면 별 머문 시간, 다른 앱이나 창으로 이동한 시간), 기기 정보(기기 종류, 화면 크기, 브라우저)를 수집합니다. 수집한 정보는 익명화하여 분석, 발표, 보고서 작성에만 사용합니다. 수집된 정보는 연구팀만 열람하며, 연구가 끝나면 파기합니다.'],
+      ['연구 소개', '이 연구는 홍익대학교 대학원 시각디자인학과\n‘디자인씽킹과코크리에이션’ 수업의 일환으로 진행됩니다.\nAI 추천 기능이 있는 앱을 이용할 때 사람들이 화면을 어떻게 받아들이는지 알아보고자 합니다.'],
+      ['진행 방법', '가상의 앱 화면을 세 단계에 걸쳐 살펴보고, 각 단계 사이마다 직전에 확인한 화면에 대한 질문에 답합니다.\n**소요시간은 약 10분**입니다. 정해진 답은 따로 없으며, 실제로 서비스를 이용하는 상황이라고 생각하고 느낀 대로 답해 주세요.\n모바일과 PC 모두 참여할 수 있으며, 진행 중에는 페이지 자체(카카오톡, Chrome, Safari 등)의 **새로고침이나 뒤로 가기를 누르지 말아 주세요.**'],
+      ['수집 정보와 보관', '설문 응답, 화면 이용 기록(누른 버튼, 화면 별 머문 시간, 다른 앱이나 창으로 이동한 시간), 기기 정보(기기 종류, 화면 크기, 브라우저)를 수집합니다.\n수집한 정보는 익명화하여 분석, 발표, 보고서 작성에만 사용합니다. 수집된 정보는 연구팀만 열람하며, 연구가 끝나면 파기합니다.'],
       ['참여와 중단', '참여는 선택이며, 참여하지 않거나 중간에 그만두어도 불이익은 없습니다. 원하지 않으면 언제든 창을 닫아 중단할 수 있습니다. 중단한 경우 어느 단계에서 중단했는지 확인하는 데에만 사용되며, 응답 분석에서는 제외됩니다.'],
-      ['보상', '-'],
+      ['보상', '본 실험 전 사전 실험 단계로 별도의 보상은 없습니다.'],
       ['문의', '조유진 · yujincho@g.hongik.ac.kr']
     ],
     agrees: ['위 내용을 읽고 이해했으며, 연구 참여와 응답·이용 기록의 활용에 동의합니다.'],
@@ -545,7 +549,7 @@ const STUDY = {
   },
 
   // 설문 — 단계마다 한 페이지. 문항 형식: likert(7점) · choice(보기 고르기) · yesno(예/아니오) · text(주관식) · fig(이미지)
-  // {B} 금융(씽킹뱅크)/OTT(씽킹플레이) · {app} 씽킹뱅크/씽킹플레이 · {data} 결제 내역·소비 패턴/시청 이력·검색 기록
+  // {B} 씽킹뱅크(금융)/씽킹플레이(OTT) · {app} 씽킹뱅크/씽킹플레이 · {data} 결제 내역·소비 패턴/시청 이력·검색 기록
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
@@ -583,10 +587,10 @@ const STUDY = {
       { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
       { id: 'T2_q3_2', no: '3-2', type: 'likert', text: '{B}가 내 정보를 사용한 목적은 내가 예상한 목적과 달랐다.' },
       { id: 'T2_q3_3', no: '3-3', type: 'likert', text: '{B}가 내 정보를 활용한 방식은 전반적으로 내가 예상했던 것과 달랐다.' },
-      { id: 'T2_q4_1', no: '4-1', type: 'likert', text: '{B}와 여행(씽킹트래블)의 개인정보 활용 방식에 대해 나는 내 권리를 침해당했다고 느꼈다.' },
-      { id: 'T2_q4_2', no: '4-2', type: 'likert', text: '{B}와 여행(씽킹트래블)의 개인정보 활용 방식에 대해 나는 배신당했다고 느꼈다.' },
-      { id: 'T2_q4_3', no: '4-3', type: 'likert', text: '{B}와 여행(씽킹트래블)의 개인정보 활용 방식에 대해 나는 존중받지 못했다고 느꼈다.' },
-      { id: 'T2_q4_4', no: '4-4', type: 'likert', text: '{B}와 여행(씽킹트래블)의 개인정보 활용 방식에 대해 나는 부당하게 이용당했다고 느낀다.' },
+      { id: 'T2_q4_1', no: '4-1', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 내 권리를 침해당했다고 느꼈다.' },
+      { id: 'T2_q4_2', no: '4-2', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 배신당했다고 느꼈다.' },
+      { id: 'T2_q4_3', no: '4-3', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 존중받지 못했다고 느꼈다.' },
+      { id: 'T2_q4_4', no: '4-4', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 부당하게 이용당했다고 느낀다.' },
       { id: 'T2_q5', no: '5', type: 'yesno', text: '나는 앞으로도 이 브랜드({app}, 씽킹트래블)의 서비스를 계속 이용할 의향이 있다.' },
       { id: 'T2_q6_1', no: '6-1', type: 'likert', text: '이번 문제 이후에도 이 브랜드({app}, 씽킹트래블)를 다시 믿고 의지할 의향이 있다.' },
       { id: 'T2_q6_2', no: '6-2', type: 'likert', text: '이번 문제가 발생했더라도 이 브랜드({app}, 씽킹트래블)에 대한 신뢰는 회복될 수 있다.' },
@@ -696,8 +700,7 @@ const FCARDS = [
 
 // '최근 교통비 지출이 늘었나요?' 영역 — 팀 검토용 초안
 const TRANSIT = [
-  { name: '씽킹 카페 체크카드', desc: '커피전문점·베이커리 결제 시 최대 10% 캐시백', rate: '전월 실적 30만 원 이상 시' },
-  { name: 'AA 청년미래적금', desc: '청년 자산 형성을 위한 정부기여금과 비과세 혜택!', rate: '36개월 기준, 연 5.00% ~ 8.00%' }
+  { name: '씽킹 카페 체크카드', desc: '커피전문점·베이커리 결제 시 최대 10% 캐시백', rate: '전월 실적 30만 원 이상 시' }
 ];
 
 // OTT 홈 '시청 중인 콘텐츠' (가로 썸네일)
@@ -727,8 +730,8 @@ const TRAVEL = {
              ['멜버른', 'img/tr_melbourne.jpg', '올해는 <b>스페셜티 카페</b>를\n<b>6개월 이용</b>했어요.\n로스터리와 브런치를 즐겨보세요!'],
              ['도쿄', 'img/tr_tokyo.jpg', '최근 <b>카페와 디저트</b> 결제가\n많았어요.\n로스터리와 디저트를 찾아보세요!']] },
   ott: { sub: '<b>씽킹플레이</b>에서 제공받은 <b>시청 이력</b>과 <b>검색 기록</b>으로 만들어졌어요.',
-    cities: [['제주도', 'img/tp_jeju.jpg', '이번 주 <b>&lt;리틀 포레스트&gt;</b>를\n<b>시청</b>하셨어요.\n제주 한 바퀴를 경험해보세요!'],
-             ['다카야마', 'img/tp_takayama.jpg', '올해만 <b>4번</b> 재주행한\n<b>&lt;너의 이름은&gt;</b>의\n일본 소도시를 즐겨보세요!'],
+    cities: [['제주도', 'img/tp_jeju.jpg', '이번 주 <b>&lt;리틀 포레스트&gt;</b>를\n<b>시청</b>하셨어요.\n제주의 자연을 경험해보세요!'],
+             ['다카야마', 'img/tp_takayama.jpg', '올해만 <b>&lt;너의 이름은&gt;</b>을\n<b>4번</b> 재주행했어요.\n일본 소도시도 즐겨보세요!'],
              ['가고시마', 'img/tp_kagoshima.jpg', '최근 <b>시골 힐링 드라마</b>를\n자주 찾아보셨어요.\n남쪽 소도시에서 쉬어 가보세요!']] }
 };
 
@@ -902,7 +905,7 @@ function finHome() {
 /* ================= 금융 상품 탭 ================= */
 function finProduct() {
   const tabs = ['입출금', '저축', '카드', '대출', '외환', '투자'];
-  return `<div class="ct" style="height:1090px">
+  return `<div class="ct" style="height:969px">
   <div class="hs" data-drag style="top:72px;height:38px"><div class="row" style="gap:23px;padding:5px 16px 0;align-items:flex-start">
     <span class="h2" style="position:relative">AI 추천<i style="position:absolute;left:0;right:0;top:30px;height:2px;background:#000"></i></span>
     ${tabs.map(t => T(t + ' 상품', 'fp_tab_' + t, 'h2', 'color:#a0a0a0;height:22px', t)).join('')}
@@ -1458,13 +1461,13 @@ const ANS = {};
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const rich = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 const tok = t => String(t)
-  .replace(/\{B\}/g, S.dom === 'fin' ? '금융(씽킹뱅크)' : 'OTT(씽킹플레이)')
+  .replace(/\{B\}/g, S.dom === 'fin' ? '씽킹뱅크(금융)' : '씽킹플레이(OTT)')
   .replace(/\{app\}/g, S.dom === 'fin' ? '씽킹뱅크' : '씽킹플레이')
   .replace(/\{data\}/g, S.dom === 'fin' ? '결제 내역·소비 패턴' : '시청 이력·검색 기록')
   .replace(/\{rec\}/g, S.dom === 'fin' ? '카드' : '콘텐츠')
   .replace(/\{tab\}/g, S.dom === 'fin' ? '상품' : '추천')
   .replace(/\{cond\}/g, S.cond).replace(/\{dom\}/g, S.dom);
-const labelTok = t => String(t).replace(/\{B\}/g, '[금융(씽킹뱅크)/OTT(씽킹플레이)]').replace(/\{app\}/g, '[씽킹뱅크/씽킹플레이]')
+const labelTok = t => String(t).replace(/\{B\}/g, '[씽킹뱅크(금융)/씽킹플레이(OTT)]').replace(/\{app\}/g, '[씽킹뱅크/씽킹플레이]')
   .replace(/\{data\}/g, '[결제 내역·소비 패턴/시청 이력·검색 기록]').replace(/\{rec\}/g, '[카드/콘텐츠]').replace(/\{tab\}/g, '[상품/추천]');
 function showSurvey(on, white) {
   resetView();
@@ -1616,7 +1619,7 @@ if (!REVIEW) {
 function showConsent() {
   const C = STUDY.consent, t0 = now();
   $('svIn').innerHTML = `<header class="sv-head"><h2>${esc(C.title)}</h2><p>${esc(C.lead)}</p></header>
-    <dl class="cs-list">${C.items.map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${rich(b)}</dd></div>`).join('')}</dl>
+    <dl class="cs-list">${C.items.map(([a, b]) => `<div><dt>${esc(a)}</dt><dd>${rich(b).replace(/\n/g, '<br>')}</dd></div>`).join('')}</dl>
     <div class="cs-agrees">${C.agrees.map((a, k) => `<label class="cs-agree" for="csAgree${k}"><input type="checkbox" class="cs-chk" id="csAgree${k}"> <span>${esc(a)}</span></label>`).join('')}</div>
     <p class="sv-err" id="svErr" hidden>동의에 체크해야 참여를 시작할 수 있어요.</p>
     <div class="sv-foot"><button class="g-btn" id="csGo">${esc(C.btn)}</button></div>`;
