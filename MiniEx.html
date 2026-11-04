@@ -410,6 +410,7 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .sa-tx .m{font-size:14px;font-weight:600;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sa-tx .x{font-size:11.5px;color:#8a8a8a}
 .sa-ch{flex:none;color:#b5b5b5}
+.sv-foot{gap:10px;align-items:center}
 </style>
 
 <div class="shell">
@@ -594,6 +595,8 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
 };
 const SKEY = 'dcc_' + (STUDY.study || 'review');
+// 주소 끝에 #reset → 이 기기에 남은 참여 기록(이어하기·기기 키·조건)을 지우고 새 참여자로 시작 (테스트용)
+if (/reset/.test(location.hash)) ['_prog', '_prog_test', '_cond', '_key'].forEach(k => { try { localStorage.removeItem(SKEY + k); } catch (_) {} });
 // 주소 끝에 #test 를 붙이면 TEST- 로 시작하는 ID로 기록돼요 (시트에서 쉽게 지울 수 있게). 매번 새 참여자로 시작해요.
 // 참여자 번호(SS001…)는 시트 서버가 순서대로 정해 줘요. 이 기기를 알아보는 값(KEY)만 브라우저에 남겨 둬요.
 const TEST = /test/.test(location.hash);
@@ -1547,7 +1550,7 @@ $('survey').addEventListener('click', e => {
  * 지나온 위치·응답을 이 기기 브라우저에 저장해 두었다가, 창이 꺼진 뒤 같은 기기로 다시 들어오면 가장 멀리 간 화면부터 이어서 진행해요.
  * 이미 닫은 고지는 다시 보여 주지 않아요. 이어한 횟수는 resumes로 기록돼요.
  */
-const PROG_KEY = SKEY + '_prog';
+const PROG_KEY = SKEY + (TEST ? '_prog_test' : '_prog');   // 테스트(#test) 기록은 따로 저장
 const RESUME_TTL_H = 24;
 let prog = null;
 function progInit() {
@@ -1569,15 +1572,17 @@ function tryResume() {
   const p = progLoad(); if (!p) return false;
   prog = p;
   if (p.complete) {
+    if (TEST) { store.set(PROG_KEY, ''); return false; }   // 테스트는 끝까지 마쳐도 매번 새로 시작
     $('svIn').innerHTML = `<header class="sv-head"><h2>이미 참여를 마치셨어요</h2></header>
       <div class="end-body"><p>참여해 주셔서 감사합니다. 응답은 모두 저장되어 있어요.</p><p>이제 이 창을 닫으셔도 됩니다.</p></div>`;
     showSurvey(true); return true;
   }
   $('svIn').innerHTML = `<header class="sv-head"><h2>이어서 참여할게요</h2>
       <p>진행하던 기록이 남아 있어요. 마지막으로 보던 화면부터 이어서 진행합니다.</p></header>
-    <div class="sv-foot"><button class="g-btn" id="rsGo">이어서 하기</button></div>`;
+    <div class="sv-foot">${TEST ? '<button class="p-btn" id="rsNew">처음부터 다시</button>' : ''}<button class="g-btn" id="rsGo">이어서 하기</button></div>`;
   showSurvey(true);
   $('rsGo').addEventListener('click', doResume);
+  if ($('rsNew')) $('rsNew').addEventListener('click', () => { store.set(PROG_KEY, ''); prog = null; showConsent(); });
   return true;
 }
 function doResume() {
