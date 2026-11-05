@@ -551,6 +551,7 @@ const STUDY = {
   // 설문 — 단계마다 한 페이지. 문항 형식: likert(7점) · choice(보기 고르기) · yesno(예/아니오) · text(주관식) · fig(이미지)
   // {B} 씽킹뱅크(금융)/씽킹플레이(OTT) · {app} 씽킹뱅크/씽킹플레이 · {data} 결제 내역·소비 패턴/시청 이력·검색 기록
   // dom: 'fin'|'ott' = 그 분야에 배정된 참여자에게만 보이는 문항 (다른 분야 참여자는 빈칸으로 저장)
+  // {item} 상품/콘텐츠 · {benefit} 나에게 맞는 할인·적립 혜택을 찾아 주기 위해/내가 좋아할 만한 콘텐츠를 찾아 주기 위해
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
@@ -571,7 +572,8 @@ const STUDY = {
       { id: 'T1_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
       { type: 'fig', src: 'img/cap_notice_{cond}.jpg', alt: '{tab} 탭에서 본 AI 추천 안내' },
       { id: 'T1_q2', no: '2', type: 'likert', text: '{B}의 개인정보({data}) 활용 방식은 AI {rec} 추천 상황에 적절하다.' },
-      { id: 'T1_q3', no: '3', type: 'text', text: '내 {data} 데이터가 {B} 내에서 어떻게(기능 및 상황) 쓰일 것이라고 예상하시는지 자유롭게 작성해주세요.' },
+      { id: 'T1_q3_1', no: '3-1', type: 'likert', text: '{B}는 내 {data} 데이터를 주로 나에게 도움이 되도록 활용할 것이다.' },   // 인식한 목적: 사용자
+      { id: 'T1_q3_2', no: '3-2', type: 'likert', text: '{B}는 내 {data} 데이터를 주로 회사(서비스)의 이익을 위해 활용할 것이다.' },   // 인식한 목적: 회사
       { id: 'T1_q4', no: '4', type: 'likert', text: '{B}에서 다루는 개인정보({data})는 민감하게 느껴진다.' },
       { id: 'T1_q5', no: '5', type: 'likert', text: '이 정보({data})가 원하지 않는 방식으로 활용되면 나에게 미치는 영향이 클 것 같다.' },
       { id: 'T1_q6', no: '6', type: 'yesno', text: '{tab} 탭의 AI 추천 기능에 관한 별도의 안내를 보았습니까?' },
@@ -599,7 +601,7 @@ const STUDY = {
       { id: 'T2_q7', no: '7', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '잘 모르겠다'] },
       { id: 'T2_q8', no: '8', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보가 활용되었다고 설명한 목적은 무엇입니까?', options: ['여행 추천 AI 학습·개선', '기존 서비스의 오류 수정', '기억나지 않는다'] },
       { id: 'T2_q9', no: '9', type: 'likert', text: '응답 확인을 위해 이 문항에서는 6을 선택해 주세요.' },   // 주의 점검: 정답 6
-      { id: 'T2_q10', no: '10', type: 'choice', text: '{B}의 {tab} 탭에서 본 AI 추천 기능에 관한 안내 팝업은 내 {data} 데이터를 주로 누구를 위해 활용한다고 설명했나요?', options: ['결과·기능·개인화 효과 중심', '혜택·편익 중심', '기억나지 않는다'] },
+      { id: 'T2_q10', no: '10', type: 'choice', text: '{B}의 {tab} 탭에서 본 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 추천 기능 개선을 위해', '{benefit}', '기억나지 않는다'] },   // 조작 점검: 정답 A=1, B=2, C=3
       { id: 'T2_q11', no: '11', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
       { id: 'T2_q12', no: '12', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' }
     ] }
@@ -1467,9 +1469,12 @@ const tok = t => String(t)
   .replace(/\{data\}/g, S.dom === 'fin' ? '결제 내역·소비 패턴' : '시청 이력·검색 기록')
   .replace(/\{rec\}/g, S.dom === 'fin' ? '카드' : '콘텐츠')
   .replace(/\{tab\}/g, S.dom === 'fin' ? '상품' : '추천')
+  .replace(/\{item\}/g, S.dom === 'fin' ? '상품' : '콘텐츠')
+  .replace(/\{benefit\}/g, S.dom === 'fin' ? '나에게 맞는 할인·적립 혜택을 찾아 주기 위해' : '내가 좋아할 만한 콘텐츠를 찾아 주기 위해')
   .replace(/\{cond\}/g, S.cond).replace(/\{dom\}/g, S.dom);
 const labelTok = t => String(t).replace(/\{B\}/g, '[씽킹뱅크(금융)/씽킹플레이(OTT)]').replace(/\{app\}/g, '[씽킹뱅크/씽킹플레이]')
-  .replace(/\{data\}/g, '[결제 내역·소비 패턴/시청 이력·검색 기록]').replace(/\{rec\}/g, '[카드/콘텐츠]').replace(/\{tab\}/g, '[상품/추천]');
+  .replace(/\{data\}/g, '[결제 내역·소비 패턴/시청 이력·검색 기록]').replace(/\{rec\}/g, '[카드/콘텐츠]').replace(/\{tab\}/g, '[상품/추천]')
+  .replace(/\{item\}/g, '[상품/콘텐츠]').replace(/\{benefit\}/g, '[나에게 맞는 할인·적립 혜택을/내가 좋아할 만한 콘텐츠를] 찾아 주기 위해');
 function showSurvey(on, white) {
   resetView();
   body.classList.toggle('in-survey', on); $('survey').hidden = !on;
