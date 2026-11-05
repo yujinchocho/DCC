@@ -550,15 +550,16 @@ const STUDY = {
 
   // 설문 — 단계마다 한 페이지. 문항 형식: likert(7점) · choice(보기 고르기) · yesno(예/아니오) · text(주관식) · fig(이미지)
   // {B} 씽킹뱅크(금융)/씽킹플레이(OTT) · {app} 씽킹뱅크/씽킹플레이 · {data} 결제 내역·소비 패턴/시청 이력·검색 기록
+  // dom: 'fin'|'ott' = 그 분야에 배정된 참여자에게만 보이는 문항 (다른 분야 참여자는 빈칸으로 저장)
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
       { id: 'T0_q1', no: '1', type: 'choice', text: '귀하의 성별은 무엇입니까?', options: ['여성', '남성'] },
       { id: 'T0_q2', no: '2', type: 'choice', text: '귀하의 연령대는 무엇입니까?', options: ['만 19세 미만', '만 19~29세', '만 30~39세', '만 40~49세', '만 50~59세', '만 60세 이상'] },
-      { id: 'T0_q3_1', no: '3-1', type: 'choice', text: '최근 1개월 동안 모바일 금융 앱(은행·카드·간편결제)을 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
-      { id: 'T0_q3_2', no: '3-2', type: 'yesno', text: '최근 1개월 동안 금융 앱에서 AI가 골라 주는 맞춤 추천(상품, 서비스 등)을 이용한 적이 있습니까?' },
-      { id: 'T0_q3_3', no: '3-3', type: 'choice', text: '최근 1개월 동안 OTT 서비스(영상 스트리밍)를 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
-      { id: 'T0_q3_4', no: '3-4', type: 'yesno', text: '최근 1개월 동안 OTT 앱에서 AI가 골라 주는 맞춤 추천(콘텐츠, 서비스 등)을 이용한 적이 있습니까?' },
+      { id: 'T0_q3_1', no: '3-1', dom: 'fin', type: 'choice', text: '최근 1개월 동안 모바일 금융 앱(은행·카드·간편결제)을 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
+      { id: 'T0_q3_2', no: '3-2', dom: 'fin', type: 'yesno', text: '최근 1개월 동안 금융 앱에서 AI가 골라 주는 맞춤 추천(상품, 서비스 등)을 이용한 적이 있습니까?' },
+      { id: 'T0_q3_3', no: '3-1', dom: 'ott', type: 'choice', text: '최근 1개월 동안 OTT 서비스(영상 스트리밍)를 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
+      { id: 'T0_q3_4', no: '3-2', dom: 'ott', type: 'yesno', text: '최근 1개월 동안 OTT 앱에서 AI가 골라 주는 맞춤 추천(콘텐츠, 서비스 등)을 이용한 적이 있습니까?' },
       { id: 'T0_q4_1', no: '4-1', type: 'likert', text: '서비스에서 내 개인정보가 어떻게 수집·이용·공유될지 결정할 권리는 나에게 있다고 생각한다.' },
       { id: 'T0_q4_2', no: '4-2', type: 'likert', text: '내 개인정보가 온라인 서비스에서 어떻게 활용되는지 아는 것은 나에게 매우 중요하다.' },
       { id: 'T0_q4_3', no: '4-3', type: 'likert', text: '서비스가 내 개인정보를 필요 이상으로 많이 수집하는 것이 우려된다.' }
@@ -570,7 +571,7 @@ const STUDY = {
       { id: 'T1_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
       { type: 'fig', src: 'img/cap_notice_{cond}.jpg', alt: '{tab} 탭에서 본 AI 추천 안내' },
       { id: 'T1_q2', no: '2', type: 'likert', text: '{B}의 개인정보({data}) 활용 방식은 AI {rec} 추천 상황에 적절하다.' },
-      { id: 'T1_q3', no: '3', type: 'text', text: '내 {data} 데이터가 {app} 내에서 어떻게(기능 및 상황) 쓰일 것이라고 예상하시는지 자유롭게 작성해주세요.' },
+      { id: 'T1_q3', no: '3', type: 'text', text: '내 {data} 데이터가 {B} 내에서 어떻게(기능 및 상황) 쓰일 것이라고 예상하시는지 자유롭게 작성해주세요.' },
       { id: 'T1_q4', no: '4', type: 'likert', text: '{B}에서 다루는 개인정보({data})는 민감하게 느껴진다.' },
       { id: 'T1_q5', no: '5', type: 'likert', text: '이 정보({data})가 원하지 않는 방식으로 활용되면 나에게 미치는 영향이 클 것 같다.' },
       { id: 'T1_q6', no: '6', type: 'yesno', text: '{tab} 탭의 AI 추천 기능에 관한 별도의 안내를 보았습니까?' },
@@ -583,22 +584,22 @@ const STUDY = {
       { id: 'T2_q1_3', no: '1-3', type: 'likert', text: '{B} 브랜드는 정직한 브랜드이다.' },
       { id: 'T2_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
       { type: 'fig', src: 'img/cap_travel_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
-      { id: 'T2_q2', no: '2', type: 'likert', text: '{B}의 {data} 활용 방식은 씽킹트래블의 여행지 추천 상황에 적절하다.' },
-      { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
+      { id: 'T2_q2', no: '2', type: 'likert', text: '{B}의 {data} 활용 방식은 씽킹트래블(여행)의 여행지 추천 상황에 적절하다.' },
+      { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블(여행)의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
       { id: 'T2_q3_2', no: '3-2', type: 'likert', text: '{B}가 내 정보를 사용한 목적은 내가 예상한 목적과 달랐다.' },
       { id: 'T2_q3_3', no: '3-3', type: 'likert', text: '{B}가 내 정보를 활용한 방식은 전반적으로 내가 예상했던 것과 달랐다.' },
       { id: 'T2_q4_1', no: '4-1', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 내 권리를 침해당했다고 느꼈다.' },
       { id: 'T2_q4_2', no: '4-2', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 배신당했다고 느꼈다.' },
       { id: 'T2_q4_3', no: '4-3', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 존중받지 못했다고 느꼈다.' },
       { id: 'T2_q4_4', no: '4-4', type: 'likert', text: '{B}와 씽킹트래블(여행)의 개인정보 활용 방식에 대해 나는 부당하게 이용당했다고 느낀다.' },
-      { id: 'T2_q5', no: '5', type: 'yesno', text: '나는 앞으로도 이 브랜드({app}, 씽킹트래블)의 서비스를 계속 이용할 의향이 있다.' },
-      { id: 'T2_q6_1', no: '6-1', type: 'likert', text: '이번 문제 이후에도 이 브랜드({app}, 씽킹트래블)를 다시 믿고 의지할 의향이 있다.' },
-      { id: 'T2_q6_2', no: '6-2', type: 'likert', text: '이번 문제가 발생했더라도 이 브랜드({app}, 씽킹트래블)에 대한 신뢰는 회복될 수 있다.' },
-      { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드({app}, 씽킹트래블)에 다시 한번 기회를 줄 의향이 있다.' },
-      { id: 'T2_q7', no: '7', type: 'choice', text: '씽킹트래블의 안내에 따르면 개인정보의 출처는 어디입니까?', options: ['앞서 이용한 {app}의 이용 데이터', '씽킹트래블 내부에서 생성된 데이터', '외부 광고회사', '잘 모르겠다'] },
-      { id: 'T2_q8', no: '8', type: 'choice', text: '씽킹트래블의 안내에 따르면 개인정보가 활용되었다고 설명한 목적은 무엇입니까?', options: ['여행 추천 AI 학습·개선', '기존 서비스의 오류 수정', '기억나지 않는다'] },
+      { id: 'T2_q5', no: '5', type: 'yesno', text: '나는 앞으로도 이 브랜드[{B}, 씽킹트래블(여행)]의 서비스를 계속 이용할 의향이 있다.' },
+      { id: 'T2_q6_1', no: '6-1', type: 'likert', text: '이번 문제 이후에도 이 브랜드[{B}, 씽킹트래블(여행)]를 다시 믿고 의지할 의향이 있다.' },
+      { id: 'T2_q6_2', no: '6-2', type: 'likert', text: '이번 문제가 발생했더라도 이 브랜드[{B}, 씽킹트래블(여행)]에 대한 신뢰는 회복될 수 있다.' },
+      { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드[{B}, 씽킹트래블(여행)]에 다시 한번 기회를 줄 의향이 있다.' },
+      { id: 'T2_q7', no: '7', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '잘 모르겠다'] },
+      { id: 'T2_q8', no: '8', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보가 활용되었다고 설명한 목적은 무엇입니까?', options: ['여행 추천 AI 학습·개선', '기존 서비스의 오류 수정', '기억나지 않는다'] },
       { id: 'T2_q9', no: '9', type: 'likert', text: '응답 확인을 위해 이 문항에서는 ‘그렇다’를 선택해 주세요.' },   // 주의 점검: 정답 6
-      { id: 'T2_q10', no: '10', type: 'choice', text: '{app}의 {tab} 탭에서 본 AI 추천 기능에 관한 안내 팝업은 내 {data} 데이터를 주로 누구를 위해 활용한다고 설명했나요?', options: ['결과·기능·개인화 효과 중심', '혜택·편익 중심', '기억나지 않는다'] },
+      { id: 'T2_q10', no: '10', type: 'choice', text: '{B}의 {tab} 탭에서 본 AI 추천 기능에 관한 안내 팝업은 내 {data} 데이터를 주로 누구를 위해 활용한다고 설명했나요?', options: ['결과·기능·개인화 효과 중심', '혜택·편익 중심', '기억나지 않는다'] },
       { id: 'T2_q11', no: '11', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
       { id: 'T2_q12', no: '12', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' }
     ] }
@@ -1500,9 +1501,10 @@ function itemHTML(it) {
     <label class="sr" for="ta_${it.id}">${esc(tok(it.text))}</label>
     <textarea id="ta_${it.id}" rows="${it.rows || 3}" maxlength="2000" placeholder="자유롭게 적어 주세요."></textarea></div>`;
 }
+const shown = it => !it.dom || it.dom === S.dom;   // 배정 분야 문항만
 function missing(id) {
   const cur = P.cur[id] || {};
-  return STUDY.surveys[id].items.filter(it => it.id && it.type !== 'fig')
+  return STUDY.surveys[id].items.filter(it => it.id && it.type !== 'fig' && shown(it))
     .filter(it => it.type === 'text' ? (it.required !== false && !String(cur[it.id] || '').trim()) : !cur[it.id]).map(it => it.id);
 }
 let saveT;
@@ -1516,7 +1518,7 @@ function renderSurvey(id) {
   const sub = pg.sub && canBack() ? `<p>화면은 <span class="bk" aria-label="이전">${IC.left(12)}</span> 버튼을 눌러 다시 볼 수 있어요.</p>` : '';
   $('svIn').innerHTML = svTop() + `<header class="sv-head"><h2>${esc(pg.title)}</h2>${sub}</header>`
     + (ro ? `<p class="sv-ro">이미 제출한 응답이에요. 바꿀 수 없어요.</p>` : '')
-    + pg.items.filter(it => !(ro && it.type === 'fig')).map(itemHTML).join('')
+    + pg.items.filter(it => shown(it) && !(ro && it.type === 'fig')).map(itemHTML).join('')
     + `<p class="sv-err" id="svErr" hidden>응답하지 않은 문항이 있어요. 표시된 문항에 답해 주세요.</p>`
     + `<div class="sv-foot"><button class="g-btn sv-next" data-nav="next">다음</button></div>`;
   showSurvey(true);
@@ -1542,7 +1544,7 @@ function renderSurvey(id) {
 function submitSurvey(id) {
   const pg = STUDY.surveys[id], cur = P.cur[id] || {};
   const ord = {}, labels = {};
-  pg.items.forEach(it => { if (!it.id || it.type === 'fig') return; ord[it.id] = it.type === 'text' ? String(cur[it.id] || '').trim() : (cur[it.id] || ''); labels[it.id] = labelTok(it.text); });
+  pg.items.forEach(it => { if (!it.id || it.type === 'fig') return; ord[it.id] = !shown(it) ? '' : it.type === 'text' ? String(cur[it.id] || '').trim() : (cur[it.id] || ''); labels[it.id] = labelTok(it.text) + (it.dom ? (it.dom === 'fin' ? ' (금융 조건만)' : ' (OTT 조건만)') : ''); });
   const dur = Math.round(now() - (P.first[id] || now()));
   Object.assign(ANS, ord); M.survey_pages++; P.done[id] = true;
   LOG.ev('survey_submit', { page: id, page_ms: dur, answers: ord });
