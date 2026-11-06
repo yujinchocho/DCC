@@ -529,9 +529,8 @@ const STUDY = {
   mode: 'main',
   study: 'main',        // 브라우저 저장 키 구분 (미니 재검사와 따로 저장)
   prefix: 'MS',         // 참여자 번호 앞 글자 (MS001…)
-  // ↓ 본실험용 구글 시트를 따로 만들면 그 웹 앱 주소로 바꿔 주세요. 지금은 미니 재검사 시트에 MS 번호로 저장돼요.
-  // ↓ (이전 메모) 미니 재검사용 새 구글 시트의 Apps Script 웹 앱 주소(…/exec)를 넣어 주세요. 비어 있으면 응답이 저장되지 않아요.
-  endpoint: 'https://script.google.com/macros/s/AKfycbyjtwaZDSFKWreeDPrBYxyXw6X_xt4U81Uesm9mYyu3uZoJnPqkb-Kh5oJE0XWOM5HdAA/exec',
+  // ↓ 본실험용 구글 시트의 Apps Script 웹 앱 주소(…/exec). 비어 있으면 응답이 저장되지 않아요.
+  endpoint: 'https://script.google.com/macros/s/AKfycbyuk8oqvaslAsSJlDfoxNKpElIqfZkASlcfC6sqz_Xd_4YkD4SO5jbWBtsLTcc8CNwsjQ/exec',
   conds: ['fin-a', 'fin-b', 'fin-c', 'ott-a', 'ott-b', 'ott-c'],
 
   consent: {
@@ -584,6 +583,7 @@ const STUDY = {
       { id: 'T0_q4_2', no: '4-2', type: 'likert', text: '내 개인정보가 온라인 서비스에서 어떻게 활용되는지 아는 것은 나에게 매우 중요하다.' },
       { id: 'T0_q4_3', no: '4-3', type: 'likert', text: '서비스가 내 개인정보를 필요 이상으로 많이 수집하는 것이 우려된다.' }
     ] },
+    // T1_q6(고지 인지)은 미니 재검사 결과로 삭제 — 열 이름(T1_q7·T1_q8)은 미니 재검사 데이터와 맞추려고 그대로 두고 화면 번호만 6·7로 표시
     T1: { title: '실제로 사용하는 {field} 서비스라고 생각하며 답해주세요.', sub: true, items: [
       { id: 'T1_q1_1', no: '1-1', type: 'likert', text: '나는 {B} 브랜드를 신뢰한다.' },
       { id: 'T1_q1_2', no: '1-2', type: 'likert', text: '나는 {B} 브랜드에 의지할 수 있다.' },
@@ -595,9 +595,8 @@ const STUDY = {
       { id: 'T1_q3_2', no: '3-2', type: 'likert', text: '{B}는 내 {data} 데이터를 주로 회사(서비스)의 이익을 위해 활용할 것이다.' },   // 인식한 목적: 회사
       { id: 'T1_q4', no: '4', type: 'likert', text: '{B}에서 다루는 개인정보({data})는 민감하게 느껴진다.' },
       { id: 'T1_q5', no: '5', type: 'likert', text: '이 정보({data})가 원하지 않는 방식으로 활용되면 나에게 미치는 영향이 클 것 같다.' },
-      { id: 'T1_q6', no: '6', type: 'yesno', text: '{tab} 탭의 AI 추천 기능에 관한 별도의 안내를 보았습니까?' },
-      { id: 'T1_q7', no: '7', type: 'likert', text: '응답 확인을 위해 이 문항에서는 3을 선택해 주세요.' },   // 주의 점검: 정답 3
-      { id: 'T1_q8', no: '8', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' }
+      { id: 'T1_q7', no: '6', type: 'likert', text: '응답 확인을 위해 이 문항에서는 3을 선택해 주세요.' },   // 주의 점검: 정답 3
+      { id: 'T1_q8', no: '7', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' }
     ] },
     T2: { title: '방금 본 화면을 떠올리며 답해주세요.', sub: true, items: [
       { id: 'T2_q1_1', no: '1-1', type: 'likert', text: '나는 여전히 {B} 브랜드를 신뢰한다.' },
