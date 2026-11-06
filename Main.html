@@ -441,6 +441,12 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .er-msg{font-size:14px!important;color:var(--ink);min-height:0}
 .er-msg:empty{display:none}
 .er-msg.err{color:var(--accent)}
+
+/* 보기 '기타' 직접 입력 */
+.ch-etc{display:block;width:100%;margin-top:8px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:16px}
+.ch-etc[hidden]{display:none}
+.ch-etc:focus{outline:2px solid var(--accent);outline-offset:1px}
+.q.miss .ch-etc{border-color:var(--accent)}
 </style>
 
 <div class="shell">
@@ -570,6 +576,7 @@ const STUDY = {
   // {B} 씽킹뱅크(금융)/씽킹플레이(OTT) · {app} 씽킹뱅크/씽킹플레이 · {data} 결제 내역·소비 패턴/시청 이력·검색 기록
   // dom: 'fin'|'ott' = 그 분야에 배정된 참여자에게만 보이는 문항 (다른 분야 참여자는 빈칸으로 저장)
   // {item} 상품/콘텐츠 · {benefit} 나에게 맞는 할인·적립 혜택을 찾아 주기 위해/내가 좋아할 만한 콘텐츠를 찾아 주기 위해
+  // {src} 결제처, 소비 패턴/시청 이력, 검색 기록 · other: true = 마지막 보기 '기타'를 고르면 직접 입력 (필수)
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
@@ -616,8 +623,8 @@ const STUDY = {
       { id: 'T2_q6_1', no: '6-1', type: 'likert', text: '이번 문제 이후에도 이 브랜드({app}, 씽킹트래블)를 다시 믿고 의지할 의향이 있다.' },
       { id: 'T2_q6_2', no: '6-2', type: 'likert', text: '이번 문제가 발생했더라도 이 브랜드({app}, 씽킹트래블)에 대한 신뢰는 회복될 수 있다.' },
       { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드({app}, 씽킹트래블)에 다시 한번 기회를 줄 의향이 있다.' },
-      { id: 'T2_q7', no: '7', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '잘 모르겠다'] },
-      { id: 'T2_q8', no: '8', type: 'choice', text: '씽킹트래블(여행)의 안내에 따르면 개인정보가 활용되었다고 설명한 목적은 무엇입니까?', options: ['여행 추천 AI 학습·개선', '기존 서비스의 오류 수정', '기억나지 않는다'] },
+      { id: 'T2_q7', no: '7', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
+      { id: 'T2_q8', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
       { id: 'T2_q9', no: '9', type: 'likert', text: '응답 확인을 위해 이 문항에서는 6을 선택해 주세요.' },   // 주의 점검: 정답 6
       { id: 'T2_q10', no: '10', type: 'choice', text: '{B}의 {tab} 탭에서 본 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 추천 기능 개선을 위해', '{benefit}', '기억나지 않는다'] },   // 조작 점검: 정답 A=1, B=2, C=3
       { id: 'T2_q11', no: '11', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
@@ -1496,11 +1503,12 @@ const tok = t => String(t)
   .replace(/\{tab\}/g, S.dom === 'fin' ? '상품' : '추천')
   .replace(/\{item\}/g, S.dom === 'fin' ? '상품' : '콘텐츠')
   .replace(/\{benefit\}/g, S.dom === 'fin' ? '나에게 맞는 할인·적립 혜택을 찾아 주기 위해' : '내가 좋아할 만한 콘텐츠를 찾아 주기 위해')
+  .replace(/\{src\}/g, S.dom === 'fin' ? '결제처, 소비 패턴' : '시청 이력, 검색 기록')
   .replace(/\{field\}/g, S.dom === 'fin' ? '금융' : 'OTT')
   .replace(/\{cond\}/g, S.cond).replace(/\{dom\}/g, S.dom);
 const labelTok = t => String(t).replace(/\{B\}/g, '[씽킹뱅크(금융)/씽킹플레이(OTT)]').replace(/\{app\}/g, '[씽킹뱅크/씽킹플레이]')
   .replace(/\{data\}/g, '[결제 내역·소비 패턴/시청 이력·검색 기록]').replace(/\{rec\}/g, '[카드/콘텐츠]').replace(/\{tab\}/g, '[상품/추천]')
-  .replace(/\{item\}/g, '[상품/콘텐츠]').replace(/\{benefit\}/g, '[나에게 맞는 할인·적립 혜택을/내가 좋아할 만한 콘텐츠를] 찾아 주기 위해');
+  .replace(/\{item\}/g, '[상품/콘텐츠]').replace(/\{src\}/g, '[결제처, 소비 패턴/시청 이력, 검색 기록]').replace(/\{benefit\}/g, '[나에게 맞는 할인·적립 혜택을/내가 좋아할 만한 콘텐츠를] 찾아 주기 위해');
 function showSurvey(on, white) {
   resetView();
   body.classList.toggle('in-survey', on); $('survey').hidden = !on;
@@ -1526,7 +1534,7 @@ function itemHTML(it) {
   if (it.type === 'choice' || it.type === 'yesno') {
     const opts = it.type === 'yesno' ? ['예', '아니오'] : it.options;
     return `<div class="q" role="group" aria-labelledby="qt_${it.id}" data-q="${it.id}" data-type="choice">${head}
-      <div class="ch${it.type === 'yesno' ? ' row' : ''}" role="radiogroup">${opts.map((o, k) => `<button type="button" role="radio" aria-checked="false" data-v="${k + 1}"><span class="dot"></span><span>${esc(tok(o))}</span></button>`).join('')}</div></div>`;
+      <div class="ch${it.type === 'yesno' ? ' row' : ''}" role="radiogroup">${opts.map((o, k) => `<button type="button" role="radio" aria-checked="false" data-v="${k + 1}"><span class="dot"></span><span>${esc(tok(o))}</span></button>`).join('')}</div>${it.other ? `<label class="sr" for="etc_${it.id}">기타 내용</label><input class="ch-etc" id="etc_${it.id}" type="text" maxlength="200" placeholder="직접 입력해 주세요" hidden>` : ''}</div>`;
   }
   return `<div class="q" role="group" aria-labelledby="qt_${it.id}" data-q="${it.id}" data-type="text">${head}
     <label class="sr" for="ta_${it.id}">${esc(tok(it.text))}</label>
@@ -1536,7 +1544,8 @@ const shown = it => !it.dom || it.dom === S.dom;   // 배정 분야 문항만
 function missing(id) {
   const cur = P.cur[id] || {};
   return STUDY.surveys[id].items.filter(it => it.id && it.type !== 'fig' && shown(it))
-    .filter(it => it.type === 'text' ? (it.required !== false && !String(cur[it.id] || '').trim()) : !cur[it.id]).map(it => it.id);
+    .filter(it => it.type === 'text' ? (it.required !== false && !String(cur[it.id] || '').trim())
+      : (!cur[it.id] || (it.other && cur[it.id] === it.options.length && !String(cur[it.id + '_etc'] || '').trim()))).map(it => it.id);
 }
 let saveT;
 function onAnswer() {
@@ -1559,13 +1568,24 @@ function renderSurvey(id) {
     if (fs.dataset.type === 'text') fs.querySelector('textarea').value = v;
     else fs.querySelectorAll('button[data-v]').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.v === v)));
   });
+  const etcOf = q => pg.items.find(it => it.id === q && it.other);
+  const syncEtc = q => { const it = etcOf(q), inp = it && box.querySelector('#etc_' + q); if (!inp) return;
+    const on = cur[q] === it.options.length; inp.hidden = !on; inp.value = cur[q + '_etc'] || ''; inp.disabled = ro; return on && inp; };
+  pg.items.filter(it => it.other).forEach(it => syncEtc(it.id));
   box.classList.toggle('ro', ro);
   if (ro) return;
   box.querySelectorAll('.lk, .ch').forEach(g => g.addEventListener('click', e => {
     const b = e.target.closest('button[data-v]'); if (!b) return;
     const fs = g.closest('.q');
     g.querySelectorAll('button[data-v]').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-    cur[fs.dataset.q] = +b.dataset.v; fs.classList.remove('miss'); onAnswer();
+    cur[fs.dataset.q] = +b.dataset.v; fs.classList.remove('miss');
+    const it = etcOf(fs.dataset.q);
+    if (it && cur[fs.dataset.q] !== it.options.length) delete cur[fs.dataset.q + '_etc'];
+    const inp = syncEtc(fs.dataset.q); if (inp) inp.focus();
+    onAnswer();
+  }));
+  box.querySelectorAll('.ch-etc').forEach(inp => inp.addEventListener('input', () => {
+    const fs = inp.closest('.q'); cur[fs.dataset.q + '_etc'] = inp.value; fs.classList.remove('miss'); onAnswer();
   }));
   box.querySelectorAll('textarea').forEach(ta => ta.addEventListener('input', () => {
     const fs = ta.closest('.q'); cur[fs.dataset.q] = ta.value; fs.classList.remove('miss'); onAnswer();
@@ -1575,7 +1595,8 @@ function renderSurvey(id) {
 function submitSurvey(id) {
   const pg = STUDY.surveys[id], cur = P.cur[id] || {};
   const ord = {}, labels = {};
-  pg.items.forEach(it => { if (!it.id || it.type === 'fig') return; ord[it.id] = !shown(it) ? '' : it.type === 'text' ? String(cur[it.id] || '').trim() : (cur[it.id] || ''); labels[it.id] = labelTok(it.text) + (it.dom ? (it.dom === 'fin' ? ' (금융 조건만)' : ' (OTT 조건만)') : ''); });
+  pg.items.forEach(it => { if (!it.id || it.type === 'fig') return; ord[it.id] = !shown(it) ? '' : it.type === 'text' ? String(cur[it.id] || '').trim() : (cur[it.id] || ''); labels[it.id] = labelTok(it.text) + (it.dom ? (it.dom === 'fin' ? ' (금융 조건만)' : ' (OTT 조건만)') : '');
+    if (it.other) { ord[it.id + '_etc'] = cur[it.id] === it.options.length ? String(cur[it.id + '_etc'] || '').trim() : ''; labels[it.id + '_etc'] = it.id + ' 기타 내용'; } });
   const dur = Math.round(now() - (P.first[id] || now()));
   Object.assign(ANS, ord); M.survey_pages++; P.done[id] = true;
   LOG.ev('survey_submit', { page: id, page_ms: dur, answers: ord });
