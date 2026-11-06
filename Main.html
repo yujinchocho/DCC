@@ -429,6 +429,18 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 /* 연구 참여 안내: 시안처럼 항목 제목 위, 본문 아래 · 단어 단위 줄바꿈 */
 .cs-list>div{grid-template-columns:minmax(0,1fr)!important;gap:6px!important;padding:14px 16px!important}
 .cs-list dd{word-break:keep-all;overflow-wrap:anywhere}
+
+/* 마지막 화면: 보상 안내 + 휴대전화 번호 (선택) */
+.end-reward{margin-top:4px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);display:flex;flex-direction:column;gap:10px}
+.end-reward h3{margin:0;font-size:16px;font-weight:700}
+.end-reward p{margin:0}
+.er-row{display:flex;gap:8px}
+.er-row input{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:16px}
+.er-row input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.er-row .g-btn{height:44px!important;flex:none}
+.er-msg{font-size:14px!important;color:var(--ink);min-height:0}
+.er-msg:empty{display:none}
+.er-msg.err{color:var(--accent)}
 </style>
 
 <div class="shell">
@@ -527,10 +539,10 @@ const STUDY = {
     lead: '안녕하세요. 연구에 참여해주셔서 감사합니다.',
     items: [
       ['연구 소개', '이 연구는 홍익대학교 대학원 시각디자인학과\n‘디자인씽킹과코크리에이션’ 수업의 일환으로 진행됩니다.\nAI 추천 기능이 있는 앱을 이용할 때 사람들이 화면을 어떻게 받아들이는지 알아보고자 합니다.'],
-      ['진행 방법', '가상의 앱 화면을 세 단계에 걸쳐 살펴보고, 각 단계 사이마다 직전에 확인한 화면에 대한 질문에 답합니다.\n**소요시간은 약 10분**입니다. 정해진 답은 따로 없으며, 실제로 서비스를 이용하는 상황이라고 생각하고 느낀 대로 답해 주세요.\n모바일과 PC 모두 참여할 수 있으며, 진행 중에는 페이지 자체(카카오톡, Chrome, Safari 등)의 **새로고침이나 뒤로 가기를 누르지 말아 주세요.**'],
-      ['수집 정보와 보관', '설문 응답, 화면 이용 기록(누른 버튼, 화면 별 머문 시간, 다른 앱이나 창으로 이동한 시간), 기기 정보(기기 종류, 화면 크기, 브라우저)를 수집합니다.\n수집한 정보는 익명화하여 분석, 발표, 보고서 작성에만 사용합니다. 수집된 정보는 연구팀만 열람하며, 연구가 끝나면 파기합니다.'],
+      ['진행 방법', '가상의 앱 화면을 세 단계에 걸쳐 살펴보고, 각 단계 사이마다 직전에 확인한 화면에 대한 질문에 답합니다.\n**소요시간은 약 5~8분**입니다. 정해진 답은 따로 없으며, 실제로 서비스를 이용하는 상황이라고 생각하고 느낀 대로 답해 주세요.\n모바일과 PC 모두 참여할 수 있으며, 진행 중에는 페이지 자체(카카오톡, Chrome, Safari 등)의 **새로고침이나 뒤로 가기를 누르지 말아 주세요.**'],
+      ['수집 정보와 보관', '설문 응답, 화면 이용 기록(누른 버튼, 화면 별 머문 시간, 다른 앱이나 창으로 이동한 시간), 기기 정보(기기 종류, 화면 크기, 브라우저)를 수집합니다.\n보상 쿠폰을 원하시는 분에 한해 마지막 화면에서 휴대전화 번호를 선택적으로 받습니다.\n수집한 정보는 익명화하여 분석, 발표, 보고서 작성에만 사용합니다. 수집된 정보는 연구팀만 열람하며, 연구가 끝나면 파기합니다. 휴대전화 번호는 쿠폰 발송에만 사용하고, 발송이 끝나면 바로 파기합니다.'],
       ['참여와 중단', '참여는 선택이며, 참여하지 않거나 중간에 그만두어도 불이익은 없습니다. 원하지 않으면 언제든 창을 닫아 중단할 수 있습니다. 중단한 경우 어느 단계에서 중단했는지 확인하는 데에만 사용되며, 응답 분석에서는 제외됩니다.'],
-      ['보상', '-'],   // ⚠ 본실험 보상 문구 확정 후 교체
+      ['보상', '참여를 완료하신 분 중 추첨을 통해 20명께 스타벅스 커피 쿠폰을 드립니다. 쿠폰을 받고 싶으시면 마지막 화면에서 휴대전화 번호를 남겨 주세요(선택).'],
       ['문의', '조유진 · yujincho@g.hongik.ac.kr']
     ],
     agrees: ['위 내용을 읽고 이해했으며, 연구 참여와 응답·이용 기록의 활용에 동의합니다.'],
@@ -544,8 +556,14 @@ const STUDY = {
       '이 연구는 AI 서비스가 이용자의 데이터를 어떻게 활용한다고 안내하는지, 그리고 그 데이터가 같은 브랜드의 다른 서비스에서 다시 활용되는 경험이 브랜드에 대한 인식에 어떤 영향을 주는지 알아보기 위한 것입니다. 응답에 영향을 주지 않도록, 참여 전에는 연구 목적을 자세히 안내하지 않았습니다.',
       '지금까지 보신 브랜드(씽킹뱅크, 씽킹플레이, 씽킹트래블)와 데이터 활용 상황은 연구를 위해 만든 가상의 것이며, 실제 서비스나 회사와는 관련이 없습니다. 실제 개인정보는 사용되지 않았습니다.',
       '아직 참여하지 않은 분들의 응답에 영향을 줄 수 있으니, 연구 내용은 다른 분께 미리 알려 주지 말아 주세요. 궁금한 점은 조유진(yujincho@g.hongik.ac.kr)에게 문의해 주세요.',
-      '이제 이 창을 닫으셔도 됩니다.'
     ],
+    // 보상 안내 + 휴대전화 번호 (선택). 번호는 시트의 END_phone 열에 저장돼요.
+    reward: {
+      title: '보상 안내 (선택)',
+      body: '참여를 완료하신 분 중 추첨을 통해 20명께 스타벅스 커피 쿠폰을 드립니다. 쿠폰을 받고 싶으시면 휴대전화 번호를 남겨 주세요. 남기지 않으셔도 참여는 이미 완료되었습니다.',
+      note: '번호는 쿠폰 발송에만 사용하며, 발송이 끝나면 바로 파기합니다.'
+    },
+    closing: '이제 이 창을 닫으셔도 됩니다.',
     showPid: true   // 참여 번호 표시 (응답 철회 요청용)
   },
 
@@ -1673,11 +1691,34 @@ function showEnd() {
   const E = STUDY.end;
   $('svIn').innerHTML = `<header class="sv-head"><h2>${esc(E.title)}</h2></header>
     <div class="end-body">${E.body.map(t => `<p>${rich(t)}</p>`).join('')}
-    ${E.showPid ? `<div class="end-code"><span>참여 번호</span><strong>${esc(LOG.sid)}</strong></div><p class="end-note">응답 철회를 원하시면 이 참여 번호와 함께 문의해 주세요.</p>` : ''}</div>`;
+    ${E.reward ? `<section class="end-reward" aria-labelledby="erTitle"><h3 id="erTitle">${esc(E.reward.title)}</h3><p>${rich(E.reward.body)}</p>
+      <label class="sr" for="erPhone">휴대전화 번호 (선택)</label>
+      <div class="er-row"><input id="erPhone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="010-0000-0000"><button type="button" class="g-btn" id="erGo">번호 남기기</button></div>
+      <p class="er-msg" id="erMsg" role="status" aria-live="polite"></p><p class="end-note">${esc(E.reward.note)}</p></section>` : ''}
+    ${E.showPid ? `<div class="end-code"><span>참여 번호</span><strong>${esc(LOG.sid)}</strong></div><p class="end-note">응답 철회를 원하시면 이 참여 번호와 함께 문의해 주세요.</p>` : ''}
+    ${E.closing ? `<p>${esc(E.closing)}</p>` : ''}</div>`;
   showSurvey(true);
+  if (E.reward) initReward();
   LOG.ev('flow_end', { metrics: { ...M } });
   post({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device }).catch(() => {});
   LOG.flush(false);
+}
+
+// 마지막 화면의 휴대전화 번호 (선택) — 번호 자체는 행동 기록(events)에 남기지 않아요
+function initReward() {
+  const inp = $('erPhone'), btn = $('erGo'), msg = $('erMsg'); if (!inp) return;
+  const fmtPhone = d => d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  inp.addEventListener('input', () => { inp.value = inp.value.replace(/[^\d-]/g, ''); msg.textContent = ''; msg.classList.remove('err'); });
+  const send = () => {
+    const d = inp.value.replace(/\D/g, '');
+    if (!/^01[016789]\d{7,8}$/.test(d)) { msg.textContent = '휴대전화 번호를 다시 확인해 주세요. (예: 010-1234-5678)'; msg.classList.add('err'); LOG.ev('contact_invalid', {}); return; }
+    const phone = fmtPhone(d); inp.value = phone;
+    if (!REVIEW) post({ kind: 'page', pid: LOG.sid, cond: S.cond, page: 'contact', page_ms: 0, answers: { END_phone: phone }, labels: { END_phone: '보상 안내용 휴대전화 번호 (선택)' } }).catch(() => {});
+    LOG.ev('contact_submit', {}); LOG.flush(false);
+    msg.textContent = '번호를 남겨 주셨어요. 감사합니다.'; btn.textContent = '번호 고치기';
+  };
+  btn.addEventListener('click', send);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
 }
 
 /* ================= 검토 패널 ================= */
