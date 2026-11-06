@@ -443,7 +443,7 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .er-msg.err{color:var(--accent)}
 
 /* 보기 '기타' 직접 입력 */
-.ch-etc{display:block;width:100%;margin-top:8px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:16px}
+.ch-etc{display:block;width:calc(100% - 38px);margin:-12px 0 0 38px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:16px}
 .ch-etc[hidden]{display:none}
 .ch-etc:focus{outline:2px solid var(--accent);outline-offset:1px}
 .q.miss .ch-etc{border-color:var(--accent)}
@@ -626,7 +626,7 @@ const STUDY = {
       { id: 'T2_q7', no: '7', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
       { id: 'T2_q8', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
       { id: 'T2_q9', no: '9', type: 'likert', text: '응답 확인을 위해 이 문항에서는 6을 선택해 주세요.' },   // 주의 점검: 정답 6
-      { id: 'T2_q10', no: '10', type: 'choice', text: '{B}의 {tab} 탭에서 본 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 추천 기능 개선을 위해', '{benefit}', '기억나지 않는다'] },   // 조작 점검: 정답 A=1, B=2, C=3
+      { id: 'T2_q10', no: '10', type: 'choice', other: true, text: '{B}의 {tab} 탭에서 본 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 추천 기능 개선을 위해', '{benefit}', '기타'] },   // 조작 점검: 정답 A=1, B=2, C=3 · 기타는 T2_q10_etc 열
       { id: 'T2_q11', no: '11', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
       { id: 'T2_q12', no: '12', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' }
     ] }
