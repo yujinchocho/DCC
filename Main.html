@@ -1368,7 +1368,7 @@ function scheduleUnlock() {
   if (pg === 'home') { const c = P.first.home + ms('COACH_AFTER') - now(); if (c > 0) later(homeCoach, c + 30); }
 }
 // 상세보기에 오래 머물면 ‹(뒤로) 버튼에 파란 원 + 말풍선 — '다음'이 열린 뒤에만
-const DETAIL_HINT_S = 8;
+const DETAIL_HINT_S = 5;   // 상세보기 머문 시간(초) — 추천 탭 '다음'이 열린 뒤에만 표시
 let detailTok = 0;
 function scheduleDetailHint() {
   const tok = ++detailTok, t0 = now();
