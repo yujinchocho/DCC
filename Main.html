@@ -454,13 +454,11 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .end-about h3{margin:0;font-size:16px;font-weight:700}
 .end-about p{margin:0}
 
-/* 상세보기 ‹ 버튼 안내 (말풍선이 버튼 아래) */
-.coach.top{white-space:nowrap;max-width:none}
+/* 상세보기 ‹ 버튼 안내 — 홈 하단 탭 말풍선·파란 원과 같은 모양 (말풍선만 버튼 아래에 있어 꼬리가 위) */
+.coach.top{max-width:none}
 .coach.top i{bottom:auto;top:-7px}
-.dt-back.coach-on{color:#1F6FEB;background:rgba(31,111,235,.12);border-radius:50%}
-.od-close.coach-on{background:#1F6FEB;border-radius:50%}
+.dt-back.coach-on,.od-close.coach-on{color:#1F6FEB}
 .dt-back.coach-on::before,.od-close.coach-on::before{content:"";position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid #1F6FEB;animation:ring 1.4s ease-out infinite}
-.od-close.coach-on{color:#fff}
 </style>
 
 <div class="shell">
