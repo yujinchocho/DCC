@@ -453,6 +453,14 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .end-about{display:flex;flex-direction:column;gap:10px;padding-top:4px}
 .end-about h3{margin:0;font-size:16px;font-weight:700}
 .end-about p{margin:0}
+
+/* 상세보기 ‹ 버튼 안내 (말풍선이 버튼 아래) */
+.coach.top{white-space:nowrap;max-width:none}
+.coach.top i{bottom:auto;top:-7px}
+.dt-back.coach-on{color:#1F6FEB;background:rgba(31,111,235,.12);border-radius:50%}
+.od-close.coach-on{background:#1F6FEB;border-radius:50%}
+.dt-back.coach-on::before,.od-close.coach-on::before{content:"";position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid #1F6FEB;animation:ring 1.4s ease-out infinite}
+.od-close.coach-on{color:#fff}
 </style>
 
 <div class="shell">
@@ -1210,7 +1218,7 @@ function openDetail(i) {
   const sc = $('sc'); detailFrom = { y: sc ? sc.scrollTop : 0, idx: i };
   const id = S.dom === 'fin' ? 'fin_card_detail' : 'ott_content_detail';
   setScreen(id, S.dom === 'fin' ? finDetail(i) : ottDetail(i), '', { push: true, after: S.dom === 'fin' ? FIN_CTA : '' });
-  M.details++;
+  M.details++; scheduleDetailHint();
   LOG.ev('detail_open', { item: S.dom === 'fin' ? FCARDS[i].id : HEROES[i].id });
   updateMetrics();
 }
@@ -1325,7 +1333,7 @@ function gateLeft() {
   if (REVIEW) return '';
   const pg = FLOW[P.idx];
   if (pg === 'home') {   // 홈 → 상품/추천 탭은 하단 탭으로만 이동 (상단 '다음'은 항상 잠김)
-    if (P.idx < P.max) return 'tabonly';
+    if (P.idx < P.max) return '';   // 이미 지나간 홈(뒤로 와서 다시 본 경우)은 상단 '다음'으로도 이동 가능
     return now() - (P.first.home || now()) >= ms('COACH_AFTER') ? 'tabonly' : 'wait';
   }
   if (P.idx < P.max) return '';
@@ -1358,6 +1366,33 @@ function scheduleUnlock() {
   else if (pg === 'tab' && S.noticeClosedT) r = S.noticeClosedT + ms('EXPLORE_MIN') - now();
   if (r > 0) later(() => { updateNav(); if (!gateLeft()) LOG.ev('next_ready', { page: pg }); }, r + 30);
   if (pg === 'home') { const c = P.first.home + ms('COACH_AFTER') - now(); if (c > 0) later(homeCoach, c + 30); }
+}
+// 상세보기에 오래 머물면 ‹(뒤로) 버튼에 파란 원 + 말풍선 — '다음'이 열린 뒤에만
+const DETAIL_HINT_S = 8;
+let detailTok = 0;
+function scheduleDetailHint() {
+  const tok = ++detailTok, t0 = now();
+  const tick = () => {
+    if (tok !== detailTok || !S.screen || !S.screen.endsWith('_detail') || FLOW[P.idx] !== 'tab') return;
+    if (now() - t0 < DETAIL_HINT_S * 1000 || gateLeft()) { later(tick, 1000); return; }
+    detailCoach();
+  };
+  later(tick, DETAIL_HINT_S * 1000 + 30);
+}
+function detailCoach() {
+  const btn = screen.querySelector('[data-id="dt_back"]'); if (!btn || $('coach')) return;
+  btn.classList.add('coach-on');
+  const el = document.createElement('div'); el.className = 'coach top'; el.id = 'coach'; el.setAttribute('role', 'status');
+  el.innerHTML = `${S.dom === 'fin' ? '상품' : '추천'} 화면으로 돌아가 다음으로 넘어가 주세요<i></i>`;
+  screen.appendChild(el);
+  const place = () => {
+    const s = screen.getBoundingClientRect(), r = btn.getBoundingClientRect(), k = s.width / 402;
+    const cx = (r.left - s.left + r.width / 2) / k, by = (r.bottom - s.top) / k;
+    el.style.left = '12px'; el.style.top = Math.max(8, by + 10) + 'px';
+    el.querySelector('i').style.left = Math.max(10, cx - 12 - 7) + 'px';
+  };
+  place(); const sc = $('sc'); if (sc) sc.addEventListener('scroll', place, { passive: true });
+  LOG.ev('detail_hint', {});
 }
 function enterPage(how) {
   clearTimers();
@@ -1669,7 +1704,7 @@ function doResume() {
   P.done = prog.done || {}; P.cur = prog.cur || {}; P.left = prog.left || {}; P.first = {};
   P.max = Math.max(1, prog.max || 1); P.idx = P.max;
   const n = prog.notice || {};
-  S.noticeShown = !!(n.shown && n.closed); S.noticeClosedT = n.closed ? now() : 0;
+  S.noticeShown = !!(n.shown && n.closed); S.noticeClosedT = n.closed ? now() - ms('EXPLORE_MIN') : 0;   // 이어서 할 때 탐색 대기를 다시 시작하지 않음
   prog.resumes = (prog.resumes || 0) + 1; M.resumes = prog.resumes;
   LOG.start(S.cond);
   LOG.ev('resume', { n: prog.resumes, page: FLOW[P.idx] });
@@ -1679,7 +1714,11 @@ function doResume() {
 if (!REVIEW) {
   try {
     history.pushState({ dcc: 1 }, '');
-    addEventListener('popstate', () => { history.pushState({ dcc: 1 }, ''); if (P.idx >= 1) goBack('browser'); else showBackNote(); });
+    addEventListener('popstate', () => {
+      history.pushState({ dcc: 1 }, '');
+      if (S.screen && S.screen.endsWith('_detail')) { LOG.ev('detail_back_browser', {}); closeDetail(); return; }   // 상세보기에서는 상세만 닫고 추천/상품 화면으로
+      if (P.idx >= 1) goBack('browser'); else showBackNote();
+    });
   } catch (_) {}
 }
 
