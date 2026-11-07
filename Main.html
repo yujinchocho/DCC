@@ -184,6 +184,7 @@ body.frameless .nav{bottom:14px}
 .n-card b{position:absolute;display:block;border-radius:2px;background:rgba(208,208,208,.5)}
 .n-title{position:absolute;left:0;width:402px;top:264px;text-align:center;color:#fff;font-size:21px;font-weight:700;line-height:25px}
 .n-body{position:absolute;left:0;width:402px;top:302px;padding:0 8px;text-align:center;color:#fff;font-size:14px;line-height:1.65;letter-spacing:-.2px;white-space:pre-line;word-break:keep-all}
+.n-body b{font-weight:700}
 .n-btn{position:absolute;left:129px;top:417px;width:144px;height:44px;border-radius:50px;background:rgba(160,160,160,.5);color:#fff;font-size:16px;font-weight:600;display:flex!important;align-items:center;justify-content:center;transition:color .45s ease}
 .n-btn.lock{color:rgba(255,255,255,.3);cursor:default}
 
@@ -616,6 +617,7 @@ const STUDY = {
       { id: 'T1_q7', no: '6', type: 'likert', text: '응답 확인을 위해 이 문항에서는 3을 선택해 주세요.' },   // 주의 점검: 정답 3
       { id: 'T1_q8', no: '7', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' }
     ] },
+    // 11/8: T2_q10(조작 점검)을 6번 뒤로 옮기고 가린 고지 캡처를 붙임 — 열 이름은 그대로, 화면 번호만 7(q10)·8(q7)·9(q8)·10(q9)
     T2: { title: '방금 본 화면을 떠올리며 답해주세요.', sub: true, items: [
       { id: 'T2_q1_1', no: '1-1', type: 'likert', text: '나는 여전히 {B} 브랜드를 신뢰한다.' },
       { id: 'T2_q1_2', no: '1-2', type: 'likert', text: '나는 여전히 {B} 브랜드에 의지할 수 있다.' },
@@ -634,10 +636,11 @@ const STUDY = {
       { id: 'T2_q6_1', no: '6-1', type: 'likert', text: '이번 문제 이후에도 이 브랜드({app}, 씽킹트래블)를 다시 믿고 의지할 의향이 있다.' },
       { id: 'T2_q6_2', no: '6-2', type: 'likert', text: '이번 문제가 발생했더라도 이 브랜드({app}, 씽킹트래블)에 대한 신뢰는 회복될 수 있다.' },
       { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드({app}, 씽킹트래블)에 다시 한번 기회를 줄 의향이 있다.' },
-      { id: 'T2_q7', no: '7', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
-      { id: 'T2_q8', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
-      { id: 'T2_q9', no: '9', type: 'likert', text: '응답 확인을 위해 이 문항에서는 6을 선택해 주세요.' },   // 주의 점검: 정답 6
-      { id: 'T2_q10', no: '10', type: 'choice', other: true, text: '{B}의 {tab} 탭에서 본 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 추천 기능 개선을 위해', '{benefit}', '기타'] },   // 조작 점검: 정답 A=1, B=2, C=3 · 기타는 T2_q10_etc 열
+      { type: 'fig', src: 'img/cap_mask_{cond}.jpg', alt: '{tab} 탭에서 본 AI 추천 안내 (목적 문장부터 가림)' },   // 조작 점검용: 공통 문장까지만 보이고 목적 문장부터 회색 막대
+      { id: 'T2_q10', no: '7', type: 'choice', other: true, text: '아래 화면처럼 {B}의 {tab} 탭에 처음 들어갔을 때 뜬 AI 추천 안내 팝업은 내 {data} 데이터를 무엇에 활용한다고 설명했나요?', options: ['{tab} 탭의 {item} 목록 구성을 위해', '{B}의 서비스 기능 개선을 위해', '{benefit}', '기타'] },   // 조작 점검: 정답 A=1, B=2, C=3 · 기타는 T2_q10_etc 열
+      { id: 'T2_q7', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
+      { id: 'T2_q8', no: '9', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
+      { id: 'T2_q9', no: '10', type: 'likert', text: '응답 확인을 위해 이 문항에서는 6을 선택해 주세요.' },   // 주의 점검: 정답 6
       { id: 'T2_q11', no: '11', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
       { id: 'T2_q12', no: '12', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' }
     ] }
@@ -703,13 +706,13 @@ const SBAR = `<div class="sbar"><span class="time">9:41</span><span class="islan
 // 고지: 리드 · ★ 목적 문장 · 범위 약속 세 줄. ★ 줄만 조건마다 달라요 (W10 피드백 반영, 11/3 수정본).
 const NOTICE = {
   fin: { title: 'AI 추천 상품', lead: 'AI가 결제 내역과 소비 패턴을 분석해요.', scope: '데이터는 씽킹뱅크 앱 안에서만 활용해요.',
-    A: '분석 결과로 이 화면의 금융 상품 목록을 구성해 보여드려요.',
-    B: '분석 결과는 씽킹뱅크의 추천 기능을 개선하는 데 쓰여요.',
-    C: '분석 결과로 고객님 맞춤 할인·적립 혜택을 찾아드려요.' },
+    A: '분석 결과로 이 화면의 <b>금융 상품 목록을 구성</b>해 보여드려요.',
+    B: '분석 결과는 씽킹뱅크의 <b>서비스 기능을 개선</b>하는 데 쓰여요.',
+    C: '분석 결과로 고객님 <b>맞춤 할인·적립 혜택</b>을 찾아드려요.' },
   ott: { title: 'AI 추천 콘텐츠', lead: 'AI가 시청 이력과 검색 기록을 분석해요.', scope: '데이터는 씽킹플레이 앱 안에서만 활용해요.',
-    A: '분석 결과로 이 화면의 콘텐츠 목록을 구성해 보여드려요.',
-    B: '분석 결과는 씽킹플레이의 추천 기능을 개선하는 데 쓰여요.',
-    C: '분석 결과로 고객님이 좋아할 만한 콘텐츠를 찾아드려요.' }
+    A: '분석 결과로 이 화면의 <b>콘텐츠 목록을 구성</b>해 보여드려요.',
+    B: '분석 결과는 씽킹플레이의 <b>서비스 기능을 개선</b>하는 데 쓰여요.',
+    C: '분석 결과로 고객님이 <b>좋아할 만한 콘텐츠를 찾아</b>드려요.' }
 };
 
 // 카드 상세 내용은 팀 검토용 초안입니다.
