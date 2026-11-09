@@ -1648,7 +1648,7 @@ function submitSurvey(id) {
   const dur = Math.round(now() - (P.first[id] || now()));
   Object.assign(ANS, ord); M.survey_pages++; P.done[id] = true;
   LOG.ev('survey_submit', { page: id, page_ms: dur, answers: ord });
-  post({ kind: 'page', pid: LOG.sid, cond: S.cond, page: id, page_ms: dur, answers: ord, labels }).catch(() => {});
+  sendSure({ kind: 'page', pid: LOG.sid, cond: S.cond, page: id, page_ms: dur, answers: ord, labels });   // 저장 확인될 때까지 다시 보냄
   LOG.flush(false); updateMetrics();
 }
 $('survey').addEventListener('click', e => {
@@ -1678,11 +1678,52 @@ function progLoad() {
   try { const p = JSON.parse(store.get(PROG_KEY) || 'null'); return p && p.pid && CONDS[p.cond] && Date.now() - p.t < RESUME_TTL_H * 3600000 ? p : null; }
   catch (_) { return null; }
 }
+/* ===== 꼭 저장돼야 하는 기록(설문 제출 · 완료 · 연락처): 서버가 저장을 확인할 때까지 다시 보냄 =====
+   보낼 것을 기기에 먼저 적어 두고(outbox), 서버 응답 {ok:true}를 받으면 지움. 실패하면 3·10·30·60초… 간격으로 다시,
+   창을 닫았다가 다시 열어도 남은 것부터 보냄. */
+const OUTBOX_KEY = SKEY + (TEST ? '_outbox_test' : '_outbox');
+const outboxLoad = () => { try { return JSON.parse(store.get(OUTBOX_KEY) || '[]'); } catch (_) { return []; } };
+const outboxSave = q => store.set(OUTBOX_KEY, JSON.stringify(q));
+let outboxBusy = false, outboxTry = 0;
+function sendSure(obj) {
+  if (REVIEW || !CFG.LOG_ENDPOINT) return;
+  const q = outboxLoad(); q.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), obj }); outboxSave(q);
+  outboxFlush();
+}
+async function outboxFlush() {
+  if (outboxBusy || !CFG.LOG_ENDPOINT) return;
+  outboxBusy = true;
+  try {
+    let q = outboxLoad();
+    while (q.length) {
+      const it = q[0];
+      let ok = false;
+      try { const r = await post(it.obj, true, 20000); ok = !!(r && r.ok); } catch (_) {}
+      if (!ok) { const waits = [3, 10, 30, 60]; setTimeout(outboxFlush, (waits[Math.min(outboxTry++, waits.length - 1)]) * 1000); LOG.ev('save_retry', { kind: it.obj.kind, page: it.obj.page || '' }); return; }
+      outboxTry = 0;
+      q = outboxLoad().filter(x => x.id !== it.id); outboxSave(q);
+      if (it.obj.kind === 'complete' && prog) { prog.synced = true; store.set(PROG_KEY, JSON.stringify(prog)); }   // 기기에 남은 응답은 건드리지 않고 표시만
+    }
+  } finally { outboxBusy = false; }
+}
+function recoverCompleted(p) {
+  if (p.synced || !CFG.LOG_ENDPOINT) { outboxFlush(); return; }
+  const q = outboxLoad();
+  if (!q.some(x => x.obj.kind === 'complete')) {   // 예전 버전처럼 대기열 없이 끝난 경우: 기기에 남은 전체 응답으로 한 번 더
+    const dev = p.dev || { vw: innerWidth, vh: innerHeight, dpr: devicePixelRatio, touch: matchMedia('(pointer:coarse)').matches, layout: document.body.classList.contains('frameless') ? 'mobile-full' : 'framed', ua: navigator.userAgent };
+    q.push({ id: 'rp' + Date.now().toString(36), obj: { kind: 'page', pid: p.pid, cond: p.cond, page: 'recover', page_ms: 0, answers: p.ans || {}, labels: {} } });
+    q.push({ id: 'rc' + Date.now().toString(36), obj: { kind: 'complete', pid: p.pid, cond: p.cond, code: '', metrics: p.m || {}, device: dev, recover: true } });
+    outboxSave(q);
+  }
+  outboxFlush();
+}
+
 function tryResume() {
   const p = progLoad(); if (!p) return false;
   prog = p;
   if (p.complete) {
     if (TEST) { store.set(PROG_KEY, ''); return false; }   // 테스트는 끝까지 마쳐도 매번 새로 시작
+    recoverCompleted(p);   // 서버에 저장 확인이 안 된 완료자: 기기에 남은 응답·지표를 다시 보냄
     $('svIn').innerHTML = `<header class="sv-head"><h2>이미 참여를 마치셨어요</h2></header>
       <div class="end-body"><p>참여해 주셔서 감사합니다. 응답은 모두 저장되어 있어요.</p><p>이제 이 창을 닫으셔도 됩니다.</p></div>`;
     showSurvey(true); return true;
@@ -1776,7 +1817,8 @@ function showEnd() {
   showSurvey(true);
   if (E.reward) initReward();
   LOG.ev('flow_end', { metrics: { ...M } });
-  post({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device }).catch(() => {});
+  if (prog) { prog.dev = LOG.device; progSave(); }
+  sendSure({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device });
   LOG.flush(false);
 }
 
@@ -1789,7 +1831,7 @@ function initReward() {
     const d = inp.value.replace(/\D/g, '');
     if (!/^01[016789]\d{7,8}$/.test(d)) { msg.textContent = '휴대전화 번호를 다시 확인해 주세요. (예: 010-1234-5678)'; msg.classList.add('err'); LOG.ev('contact_invalid', {}); return; }
     const phone = fmtPhone(d); inp.value = phone;
-    if (!REVIEW) post({ kind: 'page', pid: LOG.sid, cond: S.cond, page: 'contact', page_ms: 0, answers: { END_phone: phone }, labels: { END_phone: '보상 안내용 휴대전화 번호 (선택)' } }).catch(() => {});
+    if (!REVIEW) sendSure({ kind: 'page', pid: LOG.sid, cond: S.cond, page: 'contact', page_ms: 0, answers: { END_phone: phone }, labels: { END_phone: '보상 안내용 휴대전화 번호 (선택)' } });
     LOG.ev('contact_submit', {}); LOG.flush(false);
     msg.textContent = '번호를 남겨 주셨어요. 감사합니다.'; btn.textContent = '번호 고치기';
   };
@@ -1874,6 +1916,7 @@ body.classList.toggle('participant', !REVIEW);
 setSpec(); layout();
 if (REVIEW) { const [c0, p0] = fromHash(); rvStart(c0, p0); }
 else if (!tryResume()) showConsent();
+if (!REVIEW) setTimeout(outboxFlush, 1500);   // 지난번에 못 보낸 기록이 남아 있으면 이어서 보냄
 if (window.ResizeObserver) new ResizeObserver(layout).observe($('pwrap'));
 })();
 </script>

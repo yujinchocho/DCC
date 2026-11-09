@@ -16,7 +16,7 @@
  *  - errors    : 저장 중 오류가 나면 내용이 남아요 (정상이면 생기지 않아요)
  * 머리글(1행) 칸에 마우스를 올리면 한글 설명이 보여요.
  *
- * 진행 상태 (assign의 status 열) — 기록이 들어올 때마다 전체를 다시 계산해요
+ * 진행 상태 (assign의 status 열) — 배정·설문 제출·완료가 들어올 때마다 전체를 다시 계산해요 (5초마다 오는 행동 기록 때는 생략)
  *  - 미시작 : 동의·배정은 했지만 첫 설문 페이지를 아직 내지 않음 (자극을 보기 전)
  *  - 진행 중: 첫 설문은 냈고, 마지막 기록이 IDLE_MIN분 안에 있음
  *  - 이탈   : 첫 설문은 냈지만, 마지막 기록 뒤 IDLE_MIN분 넘게 아무 기록이 없음
@@ -78,7 +78,10 @@ const NOTE = {
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  if (!lock.tryLock(25000)) {   // 동시에 요청이 몰려 순서를 못 받으면: 기록을 남기고 '바쁨'으로 답함 (페이지가 잠시 뒤 다시 보냄)
+    logError_(new Error('busy: lock timeout'), e);
+    return json_({ ok: false, busy: true });
+  }
   try {
     const d = JSON.parse(e.postData.contents);
     let out = { ok: true };
@@ -86,7 +89,9 @@ function doPost(e) {
     else if (d.kind === 'page') savePage_(d);
     else if (d.kind === 'events') saveEvents_(d);
     else if (d.kind === 'complete') complete_(d);
-    try { refreshStatus_(); } catch (err2) { logError_(err2, e); }
+    if (d.kind !== 'events') {   // 진행 상태: 배정·설문 제출·완료가 올 때마다 다시 계산 (5초마다 오는 행동 기록 때는 생략해 서버 부담을 줄임)
+      try { refreshStatus_(); } catch (err2) { logError_(err2, e); }
+    }
     return json_(out);
   } catch (err) {
     logError_(err, e);
@@ -200,7 +205,11 @@ function complete_(d) {
   const sh = sheet_('assign');
   const ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
   const i = ids.indexOf(String(d.pid));
-  if (i >= 0) sh.getRange(i + 2, 4, 1, 3).setValues([[true, new Date(), d.code || '']]);
+  if (i >= 0) {
+    const was = sh.getRange(i + 2, 4, 1, 2).getValues()[0];   // 이미 완료로 기록돼 있으면 처음 완료 시각을 그대로 둠 (복구 전송 때문)
+    const already = was[0] === true || was[0] === 'TRUE';
+    sh.getRange(i + 2, 4, 1, 3).setValues([[true, already && was[1] ? was[1] : new Date(), d.code || '']]);
+  }
   else sh.appendRow([d.pid, d.cond, '', true, new Date(), d.code || '', '', '완료', '', '', '', new Date()]);
   touch_(d.pid, { last_stage: 'end', last_screen: 'end' });
 
@@ -348,7 +357,7 @@ function removeGroups_(sh) {
 /* ---------- 도구 ---------- */
 function logError_(err, e) {
   try {
-    sheet_('errors').appendRow([new Date(), String(err), String(err && err.stack || ''), String(e && e.postData && e.postData.contents || '').slice(0, 500)]);
+    sheet_('errors').appendRow([new Date(), String(err), String(err && err.stack || ''), String(e && e.postData && e.postData.contents || '').replace(/"END_phone":"[^"]*"/g, '"END_phone":"(가림)"').slice(0, 500)]);
   } catch (_) {}
 }
 // 탭이 없으면 만들고, 머리글(1행)이 없거나 모자라면 채우고, 설명(메모)을 붙여요.
