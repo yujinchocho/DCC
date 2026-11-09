@@ -1675,7 +1675,7 @@ function progSave() {
   store.set(PROG_KEY, JSON.stringify(prog));
 }
 function progLoad() {
-  try { const p = JSON.parse(store.get(PROG_KEY) || 'null'); return p && p.pid && CONDS[p.cond] && Date.now() - p.t < (p.complete ? 14 * 24 : RESUME_TTL_H) * 3600000 ? p : null;   // 완료 기록은 14일 보관 (중복 참여 막기 · 복구 전송) }
+  try { const p = JSON.parse(store.get(PROG_KEY) || 'null'); return p && p.pid && CONDS[p.cond] && Date.now() - p.t < (p.complete ? 14 * 24 : RESUME_TTL_H) * 3600000 ? p : null; }   // 완료 기록은 14일 보관 (중복 참여 막기 · 복구 전송)
   catch (_) { return null; }
 }
 /* ===== 꼭 저장돼야 하는 기록(설문 제출 · 완료 · 연락처): 서버가 저장을 확인할 때까지 다시 보냄 =====
