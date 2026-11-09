@@ -16,7 +16,7 @@
  *  - errors    : 저장 중 오류가 나면 내용이 남아요 (정상이면 생기지 않아요)
  * 머리글(1행) 칸에 마우스를 올리면 한글 설명이 보여요.
  *
- * 진행 상태 (assign의 status 열) — 기록이 들어오면 다시 계산해요 (서버 부담을 줄이려고 최대 STATUS_EVERY_SEC초에 한 번)
+ * 진행 상태 (assign의 status 열) — 기록이 들어올 때마다 전체를 다시 계산해요
  *  - 미시작 : 동의·배정은 했지만 첫 설문 페이지를 아직 내지 않음 (자극을 보기 전)
  *  - 진행 중: 첫 설문은 냈고, 마지막 기록이 IDLE_MIN분 안에 있음
  *  - 이탈   : 첫 설문은 냈지만, 마지막 기록 뒤 IDLE_MIN분 넘게 아무 기록이 없음
@@ -30,7 +30,6 @@ const IN_PROGRESS_MIN = 20;   // 조건 배정 때: 시작 후 이 시간(분) �
 const IDLE_MIN = 30;          // 상태 판정: 마지막 기록 뒤 이 시간(분)이 지나도록 기록이 없으면 '이탈'
 const ID_PREFIX = 'SS';       // 참여자 번호 앞 글자 기본값 (사이트 설정의 prefix가 있으면 그걸 씀. 예: 재검사 RT001…)
 const ID_DIGITS = 3;
-const STATUS_EVERY_SEC = 120;   // 진행 상태 재계산 간격(초). 응답마다 전체를 다시 계산하면 서버가 느려져 번호 배정이 늦어져요
 
 const HEAD = {
   assign: ['pid', 'cond', 'started_at', 'completed', 'completed_at', 'code', 'device_key',
@@ -87,7 +86,7 @@ function doPost(e) {
     else if (d.kind === 'page') savePage_(d);
     else if (d.kind === 'events') saveEvents_(d);
     else if (d.kind === 'complete') complete_(d);
-    try { refreshStatusThrottled_(); } catch (err2) { logError_(err2, e); }
+    try { refreshStatus_(); } catch (err2) { logError_(err2, e); }
     return json_(out);
   } catch (err) {
     logError_(err, e);
@@ -261,13 +260,6 @@ function refreshStatus_() {
   const nowMs = Date.now(), c = H.indexOf('status') + 1;
   const st = rows.map(r => [statusOf_(r, H, nowMs)]);
   sh.getRange(2, c, n, 1).setValues(st).setBackgrounds(st.map(s => [STATUS_COLOR[s[0]] || null]));
-}
-function refreshStatusThrottled_() {
-  const P = PropertiesService.getScriptProperties();
-  const last = Number(P.getProperty('statusAt') || 0);
-  if (Date.now() - last < STATUS_EVERY_SEC * 1000) return;
-  refreshStatus_();
-  P.setProperty('statusAt', String(Date.now()));
 }
 function refreshStatus() { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { refreshStatus_(); } finally { lock.releaseLock(); } }
 // pages·events 탭을 처음부터 읽어 모든 참여자의 마지막 위치를 다시 채움 (예전 기록에도 상태를 붙일 때)
