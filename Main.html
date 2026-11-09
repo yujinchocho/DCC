@@ -833,10 +833,10 @@ setInterval(() => LOG.flush(false), 5000);
 addEventListener('pagehide', () => LOG.flush(true));
 
 // Apps Script 웹 앱으로 보내기 (text/plain → 사전 요청 없이 전송)
-function post(obj, wantJson) {
+function post(obj, wantJson, waitMs) {
   if (!CFG.LOG_ENDPOINT) return Promise.resolve(null);
   const body = JSON.stringify({ study: STUDY.study, ...obj });
-  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 8000);
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), waitMs || 8000);
   return fetch(CFG.LOG_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, signal: ctl.signal, keepalive: !wantJson && body.length < 60000 })
     .then(r => (wantJson ? r.json() : null)).finally(() => clearTimeout(tm));
 }
@@ -1748,10 +1748,13 @@ async function assign() {
   const list = (STUDY.conds || Object.keys(CONDS)).filter(c => CONDS[c]);
   const saved = TEST ? null : store.get(SKEY + '_cond');
   if (CFG.LOG_ENDPOINT) {
-    try {
-      const r = await post({ kind: 'assign', key: KEY, test: TEST, prefix: STUDY.prefix || '' }, true);
-      if (r && CONDS[r.cond] && r.pid) { PID = r.pid; store.set(SKEY + '_cond', r.cond); return [r.cond, r.again ? 'server-again' : 'server']; }
-    } catch (_) {}
+    for (let k = 0; k < 2; k++) {   // 15초 기다리고, 실패하면 한 번 더 (같은 기기 키라 서버가 이미 배정했다면 같은 번호를 돌려줌)
+      try {
+        const r = await post({ kind: 'assign', key: KEY, test: TEST, prefix: STUDY.prefix || '' }, true, 15000);
+        if (r && CONDS[r.cond] && r.pid) { PID = r.pid; store.set(SKEY + '_cond', r.cond); return [r.cond, k ? 'server-retry' : (r.again ? 'server-again' : 'server')]; }
+      } catch (_) {}
+      const b = $('csGo'); if (b && k === 0) b.textContent = '연결 중이에요. 잠시만 기다려 주세요…';
+    }
   }
   PID = (TEST ? 'TEST-' : 'LOCAL-') + KEY;   // 서버에 연결되지 않았을 때 임시 번호
   if (saved && CONDS[saved]) return [saved, 'saved'];
