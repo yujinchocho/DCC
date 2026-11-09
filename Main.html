@@ -1750,7 +1750,8 @@ function tryResume() {
     if (TEST) { store.set(PROG_KEY, ''); return false; }   // 테스트는 끝까지 마쳐도 매번 새로 시작
     recoverCompleted(p);   // 서버에 저장 확인이 안 된 완료자: 기기에 남은 응답·지표를 다시 보냄
     $('svIn').innerHTML = `<header class="sv-head"><h2>이미 참여를 마치셨어요</h2></header>
-      <div class="end-body"><p>참여해 주셔서 감사합니다.</p><p class="save-st" id="saveSt" role="status" aria-live="polite" data-done="응답은 모두 저장되어 있어요. 이제 이 창을 닫으셔도 됩니다."></p></div>`;
+      <div class="end-body"><p>참여해 주셔서 감사합니다.</p><p class="save-st" id="saveSt" role="status" aria-live="polite" data-done="응답은 모두 저장되어 있어요. 이제 이 창을 닫으셔도 됩니다."></p>
+      <div class="end-code"><span>참여 번호</span><strong>${esc(p.pid)}</strong></div><p class="end-note">문의하실 때 이 참여 번호를 함께 알려 주세요.</p></div>`;
     showSurvey(true); saveStatus(); return true;
   }
   $('svIn').innerHTML = `<header class="sv-head"><h2>이어서 참여할게요</h2>
