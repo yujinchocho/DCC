@@ -460,6 +460,9 @@ body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bo
 .od-close.coach-on{color:#fff}   /* OTT 상세(포스터 위): 아이콘은 흰색 유지 */
 .dt-back.coach-on::before,.od-close.coach-on::before{content:"";position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid #1F6FEB;animation:ring 1.4s ease-out infinite}
 .od-close.coach-on::before{border-width:3.5px}   /* OTT 상세: 사진 위라 원 테두리만 조금 두껍게 */
+.save-st.pend{color:var(--muted);display:flex;align-items:center;gap:8px}
+.save-st.pend::before{content:"";flex:none;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:svspin .8s linear infinite}
+@keyframes svspin{to{transform:rotate(360deg)}}
 </style>
 
 <div class="shell">
@@ -1690,21 +1693,43 @@ function sendSure(obj) {
   const q = outboxLoad(); q.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), obj }); outboxSave(q);
   outboxFlush();
 }
+// 남은 것을 한꺼번에 보냄 (서버가 순서대로 처리). 서버가 붐비면 응답이 늦으므로 45초까지 기다림.
 async function outboxFlush() {
   if (outboxBusy || !CFG.LOG_ENDPOINT) return;
+  const q = outboxLoad(); if (!q.length) { saveStatus(); return; }
   outboxBusy = true;
+  let fail = 0;
   try {
-    let q = outboxLoad();
-    while (q.length) {
-      const it = q[0];
+    await Promise.all(q.map(async it => {
       let ok = false;
-      try { const r = await post(it.obj, true, 20000); ok = !!(r && r.ok); } catch (_) {}
-      if (!ok) { const waits = [3, 10, 30, 60]; setTimeout(outboxFlush, (waits[Math.min(outboxTry++, waits.length - 1)]) * 1000); LOG.ev('save_retry', { kind: it.obj.kind, page: it.obj.page || '' }); return; }
-      outboxTry = 0;
-      q = outboxLoad().filter(x => x.id !== it.id); outboxSave(q);
+      try { const r = await post(it.obj, true, 45000); ok = !!(r && r.ok); } catch (_) {}
+      if (!ok) { fail++; LOG.ev('save_retry', { kind: it.obj.kind, page: it.obj.page || '' }); return; }
+      outboxSave(outboxLoad().filter(x => x.id !== it.id));
       if (it.obj.kind === 'complete' && prog) { prog.synced = true; store.set(PROG_KEY, JSON.stringify(prog)); }   // 기기에 남은 응답은 건드리지 않고 표시만
-    }
+    }));
   } finally { outboxBusy = false; }
+  if (fail) { const waits = [3, 10, 30, 60]; setTimeout(outboxFlush, (waits[Math.min(outboxTry++, waits.length - 1)]) * 1000); }
+  else outboxTry = 0;
+  if (outboxLoad().length && !fail) outboxFlush();   // 보내는 사이 새로 쌓인 것
+  saveStatus();
+}
+// 창을 닫거나 다른 앱으로 넘어갈 때: 남은 것을 비콘으로 한 번 더 보냄 (창이 닫혀도 서버까지 감). 확인은 못 받으므로 대기열에는 남겨 두고, 다음에 열면 다시 확인 전송.
+let beaconAt = 0;
+function outboxBeacon() {
+  if (REVIEW || !CFG.LOG_ENDPOINT || !navigator.sendBeacon || Date.now() - beaconAt < 15000) return;
+  const q = outboxLoad(); if (!q.length) return;
+  beaconAt = Date.now();
+  q.forEach(it => { try { navigator.sendBeacon(CFG.LOG_ENDPOINT, new Blob([JSON.stringify({ study: STUDY.study, ...it.obj, beacon: true })], { type: 'text/plain' })); } catch (_) {} });
+  LOG.ev('save_beacon', { n: q.length });
+}
+addEventListener('pagehide', outboxBeacon);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') outboxBeacon(); else outboxFlush(); });
+// 마지막 화면의 저장 안내: 서버가 받았다고 답할 때까지 '저장 중'
+function saveStatus() {
+  const el = $('saveSt'); if (!el) return;
+  const pend = outboxLoad().some(x => x.obj.kind === 'complete' || (x.obj.kind === 'page' && x.obj.page !== 'contact'));
+  el.classList.toggle('pend', pend);
+  el.innerHTML = pend ? '응답을 저장하고 있어요. 잠시만 이 화면을 열어 두세요.' : esc(el.dataset.done);
 }
 function recoverCompleted(p) {
   if (p.synced || !CFG.LOG_ENDPOINT) { outboxFlush(); return; }
@@ -1725,8 +1750,8 @@ function tryResume() {
     if (TEST) { store.set(PROG_KEY, ''); return false; }   // 테스트는 끝까지 마쳐도 매번 새로 시작
     recoverCompleted(p);   // 서버에 저장 확인이 안 된 완료자: 기기에 남은 응답·지표를 다시 보냄
     $('svIn').innerHTML = `<header class="sv-head"><h2>이미 참여를 마치셨어요</h2></header>
-      <div class="end-body"><p>참여해 주셔서 감사합니다. 응답은 모두 저장되어 있어요.</p><p>이제 이 창을 닫으셔도 됩니다.</p></div>`;
-    showSurvey(true); return true;
+      <div class="end-body"><p>참여해 주셔서 감사합니다.</p><p class="save-st" id="saveSt" role="status" aria-live="polite" data-done="응답은 모두 저장되어 있어요. 이제 이 창을 닫으셔도 됩니다."></p></div>`;
+    showSurvey(true); saveStatus(); return true;
   }
   $('svIn').innerHTML = `<header class="sv-head"><h2>이어서 참여할게요</h2>
       <p>진행하던 기록이 남아 있어요. 마지막으로 보던 화면부터 이어서 진행합니다.</p></header>
@@ -1806,7 +1831,7 @@ function showEnd() {
   if (prog) { prog.complete = true; progSave(); }
   const E = STUDY.end;
   $('svIn').innerHTML = `<header class="sv-head"><h2>${esc(E.title)}</h2></header>
-    <div class="end-body">${E.body.map(t => `<p>${rich(t)}</p>`).join('')}
+    <div class="end-body">${E.body.map((t, i) => i === 0 && !REVIEW ? `<p class="save-st" id="saveSt" role="status" aria-live="polite" data-done="${esc(t)}"></p>` : `<p>${rich(t)}</p>`).join('')}
     ${E.about ? `<section class="end-about" aria-labelledby="eaTitle"><h3 id="eaTitle">${esc(E.about.title)}</h3>${E.about.paras.map(t => `<p>${rich(t)}</p>`).join('')}</section>` : ''}
     ${E.reward ? `<section class="end-reward" aria-labelledby="erTitle"><h3 id="erTitle">${esc(E.reward.title)}</h3><p>${rich(E.reward.body)}</p>
       <label class="sr" for="erPhone">휴대전화 번호 (선택)</label>
@@ -1819,6 +1844,7 @@ function showEnd() {
   LOG.ev('flow_end', { metrics: { ...M } });
   if (prog) { prog.dev = LOG.device; progSave(); }
   sendSure({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device });
+  saveStatus();
   LOG.flush(false);
 }
 
