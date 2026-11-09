@@ -22,6 +22,7 @@
 - 11/9 12:0x~ 설문 제출·완료·연락처는 서버가 저장을 확인할 때까지 다시 보냄(기기에 대기열 저장) · 이미 완료 화면을 열면 서버에 확인 안 된 응답을 기기에서 복구 전송(pages에 page=recover) · Code.gs: 순서 못 받으면 errors에 busy 기록, 행동 기록 때는 상태 재계산 생략, 복구 전송 때 처음 완료 시각 유지
 
 ## 미니 재검사 (MiniEx.html) — 본실험과 같은 화면·문항
+- 11/9: 수집 종료. 예전 링크로 11/7에 7명(RT053~RT059)이 더 들어와서, 이제 MiniEx.html은 열면 Main.html로 바로 넘어가요. 원래 파일은 git 기록에 있어요.
 - 참여자 링크: https://yujinchocho.github.io/DCC/MiniEx.html
 - 화면 검토(시트로 보내지 않음, 다음 조건 없이 넘어감): 링크 끝에 `#review-fin-a-tab` 처럼 조건·화면 지정 (화면: T0, sit1, home, tab, T1, sit2, travel, T2, end)
 - 실제 참여 흐름 테스트: 링크 끝에 `#test` (TEST001…로 기록), 빠르게 넘기려면 `#test#fast`
