@@ -77,6 +77,12 @@ const NOTE = {
 };
 
 function doPost(e) {
+  // 행동 기록(events)은 순서 잠금 없이 바로 저장: 동시 참여자가 많을 때 설문·완료 저장이 밀리지 않게 함
+  let pre = null; try { pre = JSON.parse(e.postData.contents); } catch (_) {}
+  if (pre && pre.kind === 'events') {
+    try { saveEventsFree_(pre); return json_({ ok: true }); }
+    catch (err) { logError_(err, e); return json_({ ok: false, error: String(err) }); }
+  }
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(25000)) {   // 동시에 요청이 몰려 순서를 못 받으면: 기록을 남기고 '바쁨'으로 답함 (페이지가 잠시 뒤 다시 보냄)
     logError_(new Error('busy: lock timeout'), e);
@@ -243,6 +249,31 @@ function ensureLocalRow_(d) {
 /* ---------- 진행 상태 (assign) ---------- */
 const STATUS_COLOR = { '미시작': '#f1f3f4', '진행 중': '#e8f0fe', '이탈': '#fce8e6', '완료': '#e6f4ea' };
 // 참여자 한 명의 마지막 위치를 갱신 (status는 refreshStatus_가 계산)
+// 잠금 없이 저장하는 행동 기록: 한 줄씩 appendRow(겹쳐 써지지 않음) + 진행 상태는 해당 칸만 고침
+function saveEventsFree_(d) {
+  const sh = sheet_('events');
+  const recv = new Date();
+  (d.events || []).forEach(ev => {
+    const rest = {};
+    Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
+    sh.appendRow([recv, d.pid, d.cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)]);
+  });
+  const last = (d.events || []).slice(-1)[0];
+  if (last) {
+    const scr = /^survey_/.test(last.type) && last.page ? 'survey:' + last.page : (last.screen || '');
+    touchCells_(d.pid, { last_stage: last.stage || '', last_screen: scr });
+  }
+}
+// 행 전체를 다시 쓰지 않고 필요한 칸만 씀 (잠금 없이 써도 완료 표시 등을 덮어쓰지 않게)
+function touchCells_(pid, vals) {
+  const sh = sheet_('assign'); const H = HEAD.assign;
+  const n = sh.getLastRow() - 1; if (n < 1 || !pid) return;
+  const ids = sh.getRange(2, 1, n, 1).getValues().map(r => String(r[0]));
+  const i = ids.indexOf(String(pid)); if (i < 0) return;
+  const row = i + 2;
+  Object.keys(vals).forEach(k => { const c = H.indexOf(k); if (c >= 0 && vals[k] !== undefined) sh.getRange(row, c + 1).setValue(vals[k]); });
+  sh.getRange(row, H.indexOf('last_seen') + 1).setValue(new Date());
+}
 function touch_(pid, vals) {
   const sh = sheet_('assign'); const H = HEAD.assign;
   const n = sh.getLastRow() - 1; if (n < 1 || !pid) return;

@@ -832,7 +832,7 @@ const LOG = {
     } else post(payload).catch(() => { this.queue.unshift(...evs); }); // 실패하면 다음 전송 때 다시 보냄
   }
 };
-setInterval(() => LOG.flush(false), 5000);
+setInterval(() => LOG.flush(false), 20000);
 addEventListener('pagehide', () => LOG.flush(true));
 
 // Apps Script 웹 앱으로 보내기 (text/plain → 사전 요청 없이 전송)
@@ -1688,10 +1688,10 @@ const OUTBOX_KEY = SKEY + (TEST ? '_outbox_test' : '_outbox');
 const outboxLoad = () => { try { return JSON.parse(store.get(OUTBOX_KEY) || '[]'); } catch (_) { return []; } };
 const outboxSave = q => store.set(OUTBOX_KEY, JSON.stringify(q));
 let outboxBusy = false, outboxTry = 0;
-function sendSure(obj) {
+function sendSure(obj, deferMs) {
   if (REVIEW || !CFG.LOG_ENDPOINT) return;
   const q = outboxLoad(); q.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), obj }); outboxSave(q);
-  outboxFlush();
+  if (deferMs) setTimeout(outboxFlush, deferMs); else outboxFlush();   // 마지막 화면: 비콘을 먼저 보내고, 확인 전송은 조금 뒤에 (서버 부담 분산)
 }
 // 남은 것을 한꺼번에 보냄 (서버가 순서대로 처리). 서버가 붐비면 응답이 늦으므로 45초까지 기다림.
 async function outboxFlush() {
@@ -1725,11 +1725,12 @@ function outboxBeacon() {
 addEventListener('pagehide', outboxBeacon);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') outboxBeacon(); else outboxFlush(); });
 // 마지막 화면의 저장 안내: 서버가 받았다고 답할 때까지 '저장 중'
+// 마지막 화면 문구는 바로 '저장되었습니다'로 보여 줌 (패널 앱이 이 문구로 완료를 인식).
+// 저장은 비콘(창을 닫아도 전송됨) + 뒤에서 확인 재시도 + 다음 접속 때 복구 전송으로 보장.
 function saveStatus() {
   const el = $('saveSt'); if (!el) return;
-  const pend = outboxLoad().some(x => x.obj.kind === 'complete' || (x.obj.kind === 'page' && x.obj.page !== 'contact'));
-  el.classList.toggle('pend', pend);
-  el.innerHTML = pend ? '응답을 저장하고 있어요. 잠시만 이 화면을 열어 두세요.' : esc(el.dataset.done);
+  el.classList.remove('pend');
+  el.innerHTML = esc(el.dataset.done);
 }
 function recoverCompleted(p) {
   if (p.synced || !CFG.LOG_ENDPOINT) { outboxFlush(); return; }
@@ -1844,9 +1845,10 @@ function showEnd() {
   if (E.reward) initReward();
   LOG.ev('flow_end', { metrics: { ...M } });
   if (prog) { prog.dev = LOG.device; progSave(); }
-  sendSure({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device });
+  sendSure({ kind: 'complete', pid: LOG.sid, cond: S.cond, code: '', metrics: M, device: LOG.device }, 12000);
   saveStatus();
-  LOG.flush(false);
+  outboxBeacon();   // 남은 설문·완료 기록을 비콘으로 즉시 한 번 보냄
+  LOG.flush(true);
 }
 
 // 마지막 화면의 휴대전화 번호 (선택) — 번호 자체는 행동 기록(events)에 남기지 않아요
