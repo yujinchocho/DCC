@@ -183,6 +183,7 @@ body.frameless .nav{bottom:14px}
 .pn-box{position:absolute;width:402px;height:386px;transform-origin:0 0}
 .pn-track{position:absolute;left:0;top:0;width:1206px;height:386px;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
 .pn-pg{position:absolute;top:0;width:402px;height:386px}
+.pn-art{position:absolute;left:0;top:0;width:402px;height:386px;transform-origin:201px 225px}   /* 장마다 그림만 CFG.NOTICE_ART배로 줄임 (글씨·점·버튼은 그대로) */
 .pn-t{position:absolute;left:14px;right:14px;text-align:center;font-size:20px;font-weight:700;line-height:30px;letter-spacing:-.4px;word-break:keep-all}
 .pn-t em{font-style:normal;color:#D9483F}   /* 고지 2·3장 강조: 빨강 (설문 문항 번호와 같은 색) */
 .pn-s{position:absolute;left:14px;right:14px;text-align:center;font-size:14px;line-height:20px;color:#808080;letter-spacing:-.2px}
@@ -211,11 +212,13 @@ body.frameless .nav{bottom:14px}
 .pn .spark.go{animation:pnspk .7s ease-out forwards}
 @keyframes pnspk{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.4)}}
 .pn .excard{position:absolute;left:118px;top:124px;width:167px;height:224px;opacity:0;transform:scale(.2) rotate(-10deg);transition:opacity .25s,transform .6s cubic-bezier(.3,1.6,.45,1)}
-.pn .excard img{display:block;width:167px;height:224px}
+.pn .excard{border-radius:12px;background:#f0f4fc;border:1px solid #e2e8f5;box-sizing:border-box;box-shadow:0 8px 22px rgba(30,60,140,.13)}   /* 추천 예시: 실제 카드·포스터 대신 단색 박스 */
+.pn .excard i{position:absolute;left:18px;bottom:36px;width:86px;height:10px;border-radius:2px;background:#dcdfe6}
+.pn .excard i.s{bottom:20px;width:56px;height:8px}
 .pn .excard.in{opacity:1;transform:none}
 .pn .exlbl{position:absolute;left:0;right:0;top:100px;text-align:center;font-size:14px;font-weight:600;color:#606060;opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
 .pn .exlbl.in{opacity:1;transform:none}
-.pn .fd{position:absolute;left:112px;top:162px;width:178px;height:142px;transform-origin:50% 100%}
+.pn .fd{position:absolute;left:112px;top:162px;width:178px;height:142px;transform-origin:50% 100%;transform:scale(.9)}   /* 폴더는 한 번 더 0.9배 */
 .pn .fd-back{position:absolute;left:0;top:0;width:178px;height:142px}   /* 뒤판: 탭과 몸통을 이음선 없이 한 모양(SVG)으로 */
 .pn .fd-back svg{display:block}
 .pn .fd .dcard{justify-content:flex-start;padding-top:6px;z-index:1}
@@ -223,11 +226,12 @@ body.frameless .nav{bottom:14px}
 .pn .dcard.fz2.sink{transition:transform .55s cubic-bezier(.55,0,.85,.45),opacity .2s}
 .pn .fd-front{position:absolute;left:0;top:32px;width:178px;height:110px;border-radius:16px;background:#385cd4;border:1.5px solid rgba(255,255,255,.9);box-sizing:border-box;z-index:2;
   display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800;letter-spacing:-.5px;box-shadow:0 -2px 10px rgba(20,40,120,.12)}
-.pn .fd.pulse{animation:pnpulse .6s cubic-bezier(.3,1.6,.5,1)}
+.pn .fd.pulse{animation:pnpulse9 .6s cubic-bezier(.3,1.6,.5,1)}
 .pn .folder{position:absolute;left:149px;top:233px;width:103px;height:80px}
 .pn .folder .tabf{position:absolute;left:0;top:0;width:52px;height:26px;border-radius:6px 6px 0 0;background:#2b58cf}
 .pn .folder .bodyf{position:absolute;left:0;top:14px;width:103px;height:66px;border-radius:6px;background:#2f63e0;color:#fff;font-weight:800;font-size:17px;letter-spacing:-.3px;display:flex;align-items:center;justify-content:center}
 .pn .folder.pulse{animation:pnpulse .6s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pnpulse9{0%{transform:scale(.9)}45%{transform:scale(1.03)}100%{transform:scale(.9)}}
 @keyframes pnpulse{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){.pn .pcard,.pn .dcard,.pn .ebox,.pn .excard{transition-duration:.01s}}
 /* notice (본실험 v1 — 파일럿에서는 쓰지 않음) */
@@ -444,8 +448,8 @@ body.frameless .sv-tb{top:-16px;padding-top:16px;margin-top:-16px}
 .rv-open{display:none}
 body.narrow:not(.participant) .rv-open{display:flex;position:fixed;right:12px;bottom:12px;z-index:90;height:34px;padding:0 14px;align-items:center;border-radius:17px;background:#111;color:#fff;font-size:13px;font-weight:700}
 /* 씽킹트래블: ⓘ 없이 소제목으로 출처 안내 */
-.tsub{position:absolute;left:16px;right:16px;top:201px;margin:0;font-size:12.5px;line-height:1.45;color:#222;letter-spacing:-.2px}
-.tsub b{font-weight:700}
+.tsub{position:absolute;left:16px;right:16px;top:200px;margin:0;font-size:14.5px;line-height:1.45;color:#222;letter-spacing:-.2px;white-space:nowrap}   /* 14.5px = 금융·OTT 모두 한 줄에 들어가는 가장 큰 크기 */
+.tsub b{font-weight:700;color:#D9483F}
 .tcard{position:relative;width:220px;height:266px;border-radius:16px;overflow:hidden;background:#000;color:#fff;box-shadow:0 4px 10px rgba(0,0,0,.12)}
 .tcard img{position:absolute;left:0;top:0;width:100%;height:150px;object-fit:cover}
 .tcard::after{content:'';position:absolute;left:0;right:0;top:96px;height:56px;background:linear-gradient(rgba(0,0,0,0),#000)}
@@ -592,6 +596,7 @@ const CFG = {
   SCENE_MIN_BY: { tab: 2, notice_pre: 2, tab_resume: 2 },  // 2단계 팝업들: 탭 이동, 고지 직전(사전검사), T00 뒤(사전검사)
   COACH_AFTER: 8,  // 홈: 하단 상품/추천 탭 말풍선이 뜨기까지
   HOME_MIN: 10,  // 홈: '다음'이 활성화되기까지
+  NOTICE_ART: 0.75,  // 고지 그림(카드·칩·폴더) 크기 배율 — 글씨 크기는 그대로
   NOTICE_PAGE_LOCK: 0,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지 — 파일럿: 0 = 바로 누를 수 있음 (닫기 X 없음 · 자동 넘김 없음)
   HL_DELAY: 0,        // 고지가 뜬 뒤 안내 문구 강조까지 — 강조 문구가 있는 버전만
   EXPLORE_MIN: 10,  // 추천 탭: 고지를 닫은 뒤 '다음'이 활성화되기까지
@@ -685,7 +690,7 @@ const STUDY = {
       { id: 'T2_q1_2', no: '1-2', type: 'likert', text: '나는 여전히 {B} 브랜드에 의지할 수 있다.' },
       { id: 'T2_q1_3', no: '1-3', type: 'likert', text: '{B} 브랜드는 정직한 브랜드이다.' },
       { id: 'T2_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
-      { type: 'fig', src: 'img/cap_travel_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
+      { type: 'fig', src: 'img/cap_travel_pilot_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
       { id: 'T2_q2', no: '2', type: 'likert', text: '{B}의 {data} 활용 방식은 씽킹트래블(여행)의 여행지 추천 상황에 적절하다.' },
       { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블(여행)의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
       { id: 'T2_q3_2', no: '3-2', type: 'likert', text: '{B}가 내 정보를 사용한 목적은 내가 예상한 목적과 달랐다.' },
@@ -700,6 +705,7 @@ const STUDY = {
       { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드({app}, 씽킹트래블)에 다시 한번 기회를 줄 의향이 있다.' },
       { id: 'T2_q7', no: '7', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
       { id: 'T2_q8', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
+      { type: 'fig', src: 'img/cap_notice_pilot_{dom}.png', alt: '{tab} 탭에 처음 들어갔을 때 뜬 안내 팝업 (핵심 문구는 회색으로 가림)' },   // 목적 회상·수혜 주체·활용 범위(9~11)가 가리키는 팝업
       { id: 'T2_q10', no: '9', type: 'choice', text: '{B}의 {tab} 탭에 처음 들어갔을 때 뜬 안내 팝업은 내 {data2} 정보를 어디에 사용한다고 했나요?', options: ['앱의 {item} 목록 구성', '{org}의 신규 {item} 기획', '개인의 {perk} 혜택', '기억나지 않는다'] },   // 정답 A① B② C③
       { id: 'T2_q13', no: '10', type: 'likert', ends: ['{app}(회사)', '나(사용자)'], text: '처음 본 안내에 따르면, 내 데이터를 활용해 주로 이득을 보는 쪽은 누구였나요?' },   // 1 회사 ~ 7 사용자 · 예측 B < A < C
       { id: 'T2_q14', no: '11', type: 'choice', text: '처음 본 안내에 따르면, 내 정보를 어디에서 활용한다고 했나요?', options: ['{app} 내부', '외부 제휴사', '범위는 안내하지 않았다', '기억나지 않는다'] },   // 정답 ① (전 조건)
@@ -1317,19 +1323,20 @@ function showNotice() {
       + '<div class="ebox" id="nBox"></div>'
       + [...Array(10)].map((_, i) => { const a = i / 10 * Math.PI * 2, r = 92 + (i % 3) * 14;
           return `<i class="spark" style="background:${i % 2 ? '#4880ed' : '#f2b14a'};--dx:${Math.round(Math.cos(a) * r)}px;--dy:${Math.round(Math.sin(a) * r)}px"></i>`; }).join('')
-      + `<div class="exlbl" id="nLbl">${N.card.label}</div><div class="excard" id="nCard"><img src="${N.card.img}" alt="${N.card.alt}" width="167" height="224"></div>`
+      + `<div class="exlbl" id="nLbl">${N.card.label}</div><div class="excard" id="nCard" role="img" aria-label="${N.card.alt}"><i></i><i class="s"></i></div>`
     : chip(N.chips[0], 'n2a', 'left:65px;top:150px;opacity:0') + chip(N.chips[1], 'n2b', 'left:213px;top:150px;opacity:0');
+  const art = `transform:scale(${CFG.NOTICE_ART || 1})`;
   // 3장: 폴더 = 뒤판(탭) · 칩 · 앞판 순서로 겹침 → 칩이 뒤판과 앞판 사이로 내려가 폴더 안에 들어가는 모양
-  const p3 = `<div class="fd" id="nFolder"><div class="fd-back"><svg width="178" height="142" viewBox="0 0 178 142" aria-hidden="true"><defs><linearGradient id="fdG" x1="0" y1="0" x2="0" y2="142" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3a5bd3"/><stop offset=".14" stop-color="#3a5bd3"/><stop offset=".29" stop-color="#b8c5f2"/></linearGradient></defs><path d="M.75 14.75Q.75 .75 14.75 .75H50Q57 .75 61.5 5.5L65 9.2Q68 12 75 12H163.25Q177.25 12 177.25 26V141.25H.75Z" fill="url(#fdG)" stroke="#eceef4" stroke-width="1.5"/></svg></div>`
+  const p3 = `<div class="fd" id="nFolder"><div class="fd-back"><svg width="178" height="142" viewBox="0 0 178 142" aria-hidden="true"><defs><linearGradient id="fdG" x1="0" y1="0" x2="0" y2="142" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3a5bd3"/><stop offset=".14" stop-color="#3a5bd3"/><stop offset=".29" stop-color="#b8c5f2"/></linearGradient></defs><path d="M.75 14.75Q.75 .75 14.75 .75H50Q57 .75 61.5 5.5L65 9.2Q68 12 75 12H163.25Q177.25 12 177.25 26V125.25Q177.25 141.25 161.25 141.25H16.75Q.75 141.25 .75 125.25Z" fill="url(#fdG)" stroke="#eceef4" stroke-width="1.5"/></svg></div>`
     + chip(N.chips[0], 'sm fz2 n3a', 'left:6px;top:-96px;opacity:0') + chip(N.chips[1], 'sm fz2 n3b', 'left:94px;top:-96px;opacity:0')
     + `<div class="fd-front">${N.folder}</div></div>`;
   const el = document.createElement('div');
   el.className = 'pn'; el.id = 'notice';
   el.innerHTML = `${SBAR}<div class="pn-hd" id="pnHd">${N.head}</div>
     <div class="pn-stage" id="pnStage"><div class="pn-box" id="pnBox"><div class="pn-track" id="pnTrack">
-      <div class="pn-pg" style="left:0"><div class="deck">${[0, 1, 2].map(() => '<div class="pcard"><i class="t"></i><i style="width:55%"></i></div>').join('')}</div></div>
-      <div class="pn-pg" style="left:402px">${p2}</div>
-      <div class="pn-pg" style="left:804px">${p3}</div>
+      <div class="pn-pg" style="left:0"><div class="pn-art" style="${art}"><div class="deck">${[0, 1, 2].map(() => '<div class="pcard"><i class="t"></i><i style="width:55%"></i></div>').join('')}</div></div></div>
+      <div class="pn-pg" style="left:402px"><div class="pn-art" style="${art}">${p2}</div></div>
+      <div class="pn-pg" style="left:804px"><div class="pn-art" style="${art}">${p3}</div></div>
     </div></div></div>
     <div class="pn-t" id="pnT"></div><div class="pn-s" id="pnS"></div>
     <div class="pn-dots" id="pnDots"><i></i><i></i><i></i></div>
