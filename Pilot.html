@@ -580,12 +580,12 @@ const CFG = {
   SCENE_MIN: 0,  // 상황 페이지: '○○ 이용하기' 버튼 대기 없음 (항상 활성)
   SCENE_MIN_BY: { tab: 2, notice_pre: 2, tab_resume: 2 },  // 2단계 팝업들: 탭 이동, 고지 직전(사전검사), T00 뒤(사전검사)
   COACH_AFTER: 8,  // 홈: 하단 상품/추천 탭 말풍선이 뜨기까지
-  HOME_MIN: 10,  // 홈: '다음'이 활성화되기까지
-  NOTICE_PAGE_LOCK: 3,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지 (닫기 X 없음 · 자동 넘김 없음)
+  HOME_MIN: 0,  // (쓰지 않음) 파일럿: 잠금 없음
+  NOTICE_PAGE_LOCK: 0,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지 — 파일럿: 0 = 바로 누를 수 있음 (닫기 X 없음 · 자동 넘김 없음)
   HL_DELAY: 0,        // 고지가 뜬 뒤 안내 문구 강조까지 — 강조 문구가 있는 버전만
-  EXPLORE_MIN: 10,  // 추천 탭: 고지를 닫은 뒤 '다음'이 활성화되기까지
+  EXPLORE_MIN: 0,  // 추천 탭: 고지를 닫은 뒤 '다음'이 활성화되기까지 — 파일럿: 0 = 바로
   EXPLORE_SEEN: 0,
-  TRAVEL_MIN: 8,  // 씽킹트래블: '다음'이 활성화되기까지
+  TRAVEL_MIN: 0,  // 씽킹트래블: '다음'이 활성화되기까지 — 파일럿: 0 = 바로
   BACK_SCOPE: 'all',   // 뒤로 가기 범위: 'all' = 어디든 (이미 낸 설문은 읽기 전용, 이미지 숨김) / 'stage' = 같은 단계 안에서만    // 추천 탭: 핵심 항목을 몇 개 이상 봐야 하는지 (0 = 시간만)
   HINT_AFTER: 10,     // 트래블: ⓘ를 누르지 않으면 힌트가 나타나기까지
   INFO_MIN: 2,        // 트래블: ⓘ 팝업을 합계 몇 초 이상 열어야 '다음'이 나타나는지
@@ -1288,7 +1288,7 @@ function markSeen(id, how) {
 /* ================= 고지 (v2.0: 3장 안내) =================
  * 1장 새 페이지 안내(상품 카드 2번 회전) → 2장 ★ 목적 문장(데이터 칩이 흐려지며 겹쳐 흰 박스 → 터지며 추천 예시: 금융 카드 / OTT 포스터) → 3장 범위 약속(칩이 폴더 안으로).
  * 제목·부제는 애니메이션 없음 · 이미지 영역만 옆으로 넘어감 · 애니메이션은 장마다 한 번만 재생 · 자동 넘김 없음
- * [계속하기]는 장마다 CFG.NOTICE_PAGE_LOCK초 뒤 활성 · 닫기(X) 없음 · 장별 머문 시간 기록(notice_p1~3_ms)
+ * [계속하기]는 장마다 CFG.NOTICE_PAGE_LOCK초 뒤 활성(파일럿: 0 = 바로) · 닫기(X) 없음 · 장별 머문 시간 기록(notice_p1~3_ms)
  */
 const NIC = {
   card: '<svg width="27" height="27" viewBox="0 0 27 27" fill="none"><rect x="3.3" y="6.6" width="19.8" height="14.3" rx="2.2" stroke="#404040" stroke-width="1.5"/><path d="M7.7 16.5h.01" stroke="#404040" stroke-width="1.5" stroke-linecap="round"/><path d="M4.4 12.1h18.7" stroke="#404040" stroke-width="1.5" stroke-linecap="round"/></svg>',
@@ -1335,6 +1335,7 @@ function noticePage(n) {
   [...$('pnDots').children].forEach((d, k) => d.classList.toggle('on', k === n - 1));
   const b = $('nbtn'); b.classList.add('lock'); b.setAttribute('aria-disabled', 'true');
   LOG.ev('notice_page', { page: n });
+  if (!ms('NOTICE_PAGE_LOCK')) { S.noticeLocked = false; b.classList.remove('lock'); b.removeAttribute('aria-disabled'); noticeAnim(n); return; }   // 잠금 0초: 바로 활성
   later(() => {
     if (S.noticePage !== n || !$('notice')) return;
     S.noticeLocked = false; b.classList.remove('lock'); b.removeAttribute('aria-disabled');
@@ -1459,7 +1460,7 @@ function gateLeft() {
   const pg = FLOW[P.idx];
   if (pg === 'home') {   // 홈 → 상품/추천 탭은 하단 탭으로만 이동 (상단 '다음'은 항상 잠김)
     if (P.idx < P.max) return '';   // 이미 지나간 홈(뒤로 와서 다시 본 경우)은 상단 '다음'으로도 이동 가능
-    return now() - (P.first.home || now()) >= ms('COACH_AFTER') ? 'tabonly' : 'wait';
+    return 'tabonly';   // 파일럿: 대기 없이 하단 탭으로 바로 이동 가능 (상단 '다음'을 누르면 하단 탭 말풍선)
   }
   if (P.idx < P.max) return '';
   if (isSurvey(pg)) return missing(pg).length ? 'survey' : '';
@@ -2031,7 +2032,7 @@ function renderLog() {
 }
 function setSpec() {
   const f = FAST ? ' (지금은 1/10)' : '';
-  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장 · 장마다 ${CFG.NOTICE_PAGE_LOCK}초 잠금 · 탐색 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
+  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장 · 장마다 ${CFG.NOTICE_PAGE_LOCK}초 잠금 · 추천 탭 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 (0초 = 대기 없음) · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
 }
 function markCond() {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === S.cond));
