@@ -180,6 +180,8 @@ body.frameless .nav{bottom:14px}
 .pn{position:absolute;inset:0;z-index:64;background:#fff;overflow:hidden;animation:nfade .2s ease;color:#000}
 .pn-hd{position:absolute;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;letter-spacing:-.2px}
 .pn-stage{position:absolute;left:0;right:0;overflow:hidden}
+.pn.txt .pn-stage{display:none}   /* 문구만 버전: 그림 영역 없음 */
+.pn .coach{pointer-events:none}
 .pn-box{position:absolute;width:402px;height:386px;transform-origin:0 0}
 .pn-track{position:absolute;left:0;top:0;width:1206px;height:386px;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
 .pn-pg{position:absolute;top:0;width:402px;height:386px}
@@ -608,6 +610,8 @@ const CFG = {
   SCENE_MIN_BY: { tab: 2, notice_pre: 2, tab_resume: 2 },  // 2단계 팝업들: 탭 이동, 고지 직전(사전검사), T00 뒤(사전검사)
   COACH_AFTER: 8,  // 홈: 하단 상품/추천 탭 말풍선이 뜨기까지
   HOME_MIN: 10,  // 홈: '다음'이 활성화되기까지
+  NOTICE_TEXT_ONLY: true,  // 고지: 그림·애니메이션 없이 문구만 (false면 그림 버전)
+  NOTICE_NUDGE: [2, 3, 2],  // 고지 1·2·3장: 이 시간(초) 안에 [계속하기]를 누르면 '충분히 확인하셨나요?' 말풍선 (장마다 한 번, 다시 누르면 넘어감)
   NOTICE_ART: 0.75,  // 고지 그림(카드·칩·폴더) 크기 배율 — 글씨 크기는 그대로
   NOTICE_PAGE_LOCK: 0,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지 — 파일럿: 0 = 바로 누를 수 있음 (닫기 X 없음 · 자동 넘김 없음)
   HL_DELAY: 0,        // 고지가 뜬 뒤 안내 문구 강조까지 — 강조 문구가 있는 버전만
@@ -1349,7 +1353,7 @@ function showNotice() {
     + chip(N.chips[0], 'sm fz2 n3a', 'left:6px;top:-96px;opacity:0') + chip(N.chips[1], 'sm fz2 n3b', 'left:94px;top:-96px;opacity:0')
     + `<div class="fd-front">${N.folder}</div></div>`;
   const el = document.createElement('div');
-  el.className = 'pn'; el.id = 'notice';
+  el.className = 'pn' + (CFG.NOTICE_TEXT_ONLY ? ' txt' : ''); el.id = 'notice';
   el.innerHTML = `${SBAR}<div class="pn-hd" id="pnHd">${N.head}</div>
     <div class="pn-stage" id="pnStage"><div class="pn-box" id="pnBox"><div class="pn-track" id="pnTrack">
       <div class="pn-pg" style="left:0"><div class="pn-art" style="${art}"><div class="deck">${[0, 1, 2].map(() => '<div class="pcard"><i class="t"></i><i style="width:55%"></i></div>').join('')}</div></div></div>
@@ -1367,20 +1371,22 @@ function showNotice() {
 }
 function noticePage(n) {
   const N = NOTICE[S.dom], pg = N.pages[n - 1], el = $('notice'); if (!el) return;
-  S.noticePage = n; S.noticePageT = now(); S.noticeLocked = true;
+  S.noticePage = n; S.noticePageT = now(); S.noticeLocked = true; S.noticeNudged = false;
+  const nd = $('nNudge'); if (nd) nd.remove();
   $('pnTrack').style.transform = `translateX(${-402 * (n - 1)}px)`;
   $('pnT').innerHTML = pg.t.replace('{P}', N.P[S.notice].replace('의 ', '</em>의 <em>'));   // 'A의 B': 조사 '의'는 강조색 없이 검은 글씨
   $('pnS').textContent = pg.s || '';
   [...$('pnDots').children].forEach((d, k) => d.classList.toggle('on', k === n - 1));
+  if (CFG.NOTICE_TEXT_ONLY) placeNotice();   // 문구 길이에 맞춰 세로 가운데
   const b = $('nbtn'); b.classList.add('lock'); b.setAttribute('aria-disabled', 'true');
   LOG.ev('notice_page', { page: n });
-  if (!ms('NOTICE_PAGE_LOCK')) { S.noticeLocked = false; b.classList.remove('lock'); b.removeAttribute('aria-disabled'); noticeAnim(n); return; }   // 잠금 0초: 바로 활성
+  if (!ms('NOTICE_PAGE_LOCK')) { S.noticeLocked = false; b.classList.remove('lock'); b.removeAttribute('aria-disabled'); if (!CFG.NOTICE_TEXT_ONLY) noticeAnim(n); return; }   // 잠금 0초: 바로 활성
   later(() => {
     if (S.noticePage !== n || !$('notice')) return;
     S.noticeLocked = false; b.classList.remove('lock'); b.removeAttribute('aria-disabled');
     LOG.ev('notice_unlock', { page: n, after_ms: Math.round(now() - S.noticePageT) });
   }, ms('NOTICE_PAGE_LOCK'));
-  noticeAnim(n);
+  if (!CFG.NOTICE_TEXT_ONLY) noticeAnim(n);
 }
 // 장마다 한 번만 재생
 function noticeAnim(n) {
@@ -1417,6 +1423,13 @@ function placeNotice() {
   if (!$('pnStage')) return;
   const H = S.H, fl = body.classList.contains('frameless'), top0 = fl ? 0 : 52, bottom = fl ? 24 : 36;
   const btnTop = H - bottom - 56;
+  if (CFG.NOTICE_TEXT_ONLY) {   // 문구만: 제목은 머리~버튼 사이 45% 높이에 가운데, 부제·점은 버튼 위쪽 고정
+    const t = $('pnT'), hTop = top0 + 44;
+    $('pnHd').style.top = top0 + 'px';
+    t.style.top = Math.round(hTop + (btnTop - hTop) * 0.45 - t.offsetHeight / 2) + 'px';
+    $('pnS').style.top = (btnTop - 198) + 'px'; $('pnDots').style.top = (btnTop - 145) + 'px'; $('nbtn').style.top = btnTop + 'px';
+    return;
+  }
   const tTop = Math.max(btnTop - 279, top0 + 44 + 220);
   const stTop = top0 + 44, stH = tTop - stTop, sc = Math.min(1, stH / 386);
   $('pnHd').style.top = top0 + 'px';
@@ -1425,9 +1438,23 @@ function placeNotice() {
   $('pnT').style.top = tTop + 'px'; $('pnS').style.top = (tTop + 70) + 'px';
   $('pnDots').style.top = Math.min(tTop + 128, btnTop - 26) + 'px'; $('nbtn').style.top = btnTop + 'px';
 }
+function noticeNudge() {
+  const el = $('notice'), b = $('nbtn'); if (!el || !b) return;
+  const c = document.createElement('div'); c.className = 'coach'; c.id = 'nNudge'; c.setAttribute('role', 'status');
+  c.innerHTML = '충분히 확인하셨나요?<i></i>'; el.appendChild(c);
+  const w = c.offsetWidth, h = c.offsetHeight;
+  c.style.left = Math.round((402 - w) / 2) + 'px'; c.style.top = (parseFloat(b.style.top) - h - 14) + 'px';
+  c.querySelector('i').style.left = Math.round(w / 2 - 7) + 'px';
+}
 function confirmNotice() {
   if (S.noticeLocked) { M.notice_early_taps++; LOG.ev('notice_tap_locked', { page: S.noticePage }); updateMetrics(); return; }
   const n = S.noticePage, pgMs = Math.round(now() - S.noticePageT);
+  const minMs = ((CFG.NOTICE_NUDGE || [])[n - 1] || 0) * (FAST ? 100 : 1000);
+  if (pgMs < minMs) {   // 너무 빨리 누름 → 장마다 첫 번째에만 말풍선, 다시 누르면 넘어감
+    M.notice_early_taps++;
+    if (!S.noticeNudged) { S.noticeNudged = true; noticeNudge(); LOG.ev('notice_nudge', { page: n, view_ms: pgMs }); updateMetrics(); return; }
+  }
+  const nd = $('nNudge'); if (nd) nd.remove();
   M['notice_p' + n + '_ms'] = pgMs;
   LOG.ev('notice_next', { page: n, view_ms: pgMs });
   if (n < 3) { noticePage(n + 1); updateMetrics(); return; }
@@ -2088,7 +2115,7 @@ function updateMetrics() {
     ['홈 체류', M.home_ms ? fmt(M.home_ms) : '–'],
     ['고지 3장 확인까지', fmt(M.notice_ms)],
     ['고지 장별 (1·2·3장)', [M.notice_p1_ms, M.notice_p2_ms, M.notice_p3_ms].map(fmt).join(' · ')],
-    ['잠금 중 계속하기 탭', M.notice_early_taps + '회'],
+    ['기준 시간 전 계속하기 탭', M.notice_early_taps + '회'],
     ['추천 탭 탐색', fmt(M.explore_ms)],
     ['캐러셀 이동', M.carousel_moves + '회'],
     ['상세 화면 열람', M.details + '회 · ' + (M.detail_ms / 1000).toFixed(1) + '초'],
@@ -2115,7 +2142,7 @@ function renderLog() {
 }
 function setSpec() {
   const f = FAST ? ' (지금은 1/10)' : '';
-  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장 · 장마다 ${CFG.NOTICE_PAGE_LOCK}초 잠금 · 추천 탭 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 (0초 = 대기 없음) · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
+  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장(문구만) · ${CFG.NOTICE_NUDGE.join('/')}초 전에 누르면 말풍선 · 추천 탭 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 (0초 = 대기 없음) · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
 }
 function markCond() {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === S.cond));
