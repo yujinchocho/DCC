@@ -361,6 +361,7 @@ body.frameless .survey{padding:16px max(16px,env(safe-area-inset-left,0px)) 16px
 .qg .q.miss{box-shadow:inset 3px 0 0 var(--accent);background:var(--accent-soft);margin:0 -24px;padding-left:24px;padding-right:24px}
 .qg .q-fig{margin:0 -24px 22px;border:0;border-radius:0;background:transparent}   /* 박스 안 캡처: 좌우 여백 없이 꽉 차게 (박스 속 박스 X) */
 .qg .q-fig+.q{border-top:1px solid var(--line)}   /* 캡처 아래 구분선 */
+.qg .q-fig.pad{margin-left:-14px;margin-right:-14px}   /* 고지 캡처: 박스 가장자리에서 좌우 10px */
 .q .qt{margin:0;padding:0;font-size:15px;font-weight:700;line-height:1.55;display:flex;gap:12px;min-width:0}
 .q .qt>span:last-child{min-width:0}
 .qn{color:var(--accent);font-variant-numeric:tabular-nums;flex:none;min-width:.8em}
@@ -725,7 +726,7 @@ const STUDY = {
       { id: 'T2_q11', no: '9', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
       { id: 'T2_q12', no: '10', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' },
       { type: 'group', title: '{app} 안내 화면에 대해' },
-      { type: 'fig', src: 'img/cap_notice_pilot_{dom}.png', alt: '{tab} 탭에 처음 들어갔을 때 뜬 안내 팝업 (핵심 문구는 회색으로 가림)' },   // 목적 회상·수혜 주체·활용 범위(9~11)가 가리키는 팝업
+      { type: 'fig', pad: true, src: 'img/cap_notice_pilot_{dom}.png', alt: '{tab} 탭에 처음 들어갔을 때 뜬 안내 팝업 (핵심 문구는 회색으로 가림)' },   // 목적 회상·수혜 주체·활용 범위(9~11)가 가리키는 팝업
       { id: 'T2_q10', no: '11', type: 'choice', text: '{B}의 {tab} 탭에 처음 들어갔을 때 뜬 안내 팝업은 내 {data2} 정보를 어디에 사용한다고 했나요?', options: ['앱의 {item} 목록 구성', '{org}의 신규 {item} 기획', '개인의 {perk} 혜택', '기억나지 않는다'] },   // 정답 A① B② C③
       { id: 'T2_q13', no: '12', type: 'likert', ends: ['{app}(회사)', '나(사용자)'], text: '처음 본 안내에 따르면, 내 데이터를 활용해 주로 이득을 보는 쪽은 누구였나요?' },   // 1 회사 ~ 7 사용자 · 예측 B < A < C
       { id: 'T2_q14', no: '13', type: 'choice', text: '처음 본 안내에 따르면, 내 정보를 어디에서 활용한다고 했나요?', options: ['{app} 내부', '외부 제휴사', '범위는 안내하지 않았다', '기억나지 않는다'] },   // 정답 ① (전 조건)
@@ -1768,7 +1769,7 @@ function resetView() {
 }
 function itemHTML(it) {
   if (it.type === 'group') return '';   // 묶음 머리는 groupHTML에서
-  if (it.type === 'fig') return `<figure class="q-fig"><img src="${esc(tok(it.src))}" alt="${esc(tok(it.alt || ''))}"></figure>`;
+  if (it.type === 'fig') return `<figure class="q-fig${it.pad ? ' pad' : ''}"><img src="${esc(tok(it.src))}" alt="${esc(tok(it.alt || ''))}"></figure>`;
   const head = `<div class="qt" id="qt_${it.id}"><span class="qn">${it.no}.</span><span>${esc(tok(it.text))}</span></div>`;
   if (it.type === 'likert') {
     return `<div class="q" role="group" aria-labelledby="qt_${it.id}" data-q="${it.id}" data-type="likert">${head}
