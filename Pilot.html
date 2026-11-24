@@ -1344,7 +1344,7 @@ function noticePage(n) {
   const N = NOTICE[S.dom], pg = N.pages[n - 1], el = $('notice'); if (!el) return;
   S.noticePage = n; S.noticePageT = now(); S.noticeLocked = true;
   $('pnTrack').style.transform = `translateX(${-402 * (n - 1)}px)`;
-  $('pnT').innerHTML = pg.t.replace('{P}', N.P[S.notice]);
+  $('pnT').innerHTML = pg.t.replace('{P}', N.P[S.notice].replace('의 ', '</em>의 <em>'));   // 'A의 B': 조사 '의'는 강조색 없이 검은 글씨
   $('pnS').textContent = pg.s || '';
   [...$('pnDots').children].forEach((d, k) => d.classList.toggle('on', k === n - 1));
   const b = $('nbtn'); b.classList.add('lock'); b.setAttribute('aria-disabled', 'true');
