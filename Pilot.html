@@ -353,13 +353,13 @@ body.frameless .survey{padding:16px max(16px,env(safe-area-inset-left,0px)) 16px
 .qg{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:16px;overflow:hidden;margin:0;min-width:0}
 .qg-hd{margin:0;padding:13px 24px;background:var(--ink);color:var(--panel);font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-.2px}
 .qg-bd{padding:4px 24px 6px;display:flex;flex-direction:column}
-.qg-note{margin:18px 0 4px;padding:16px 18px;border-radius:12px;background:var(--accent-soft)}
+.qg-note{margin:16px -12px 4px;padding:16px 18px;border-radius:12px;background:var(--accent-soft)}
 .qg-note b{display:block;color:var(--accent);font-size:14px;font-weight:700;margin-bottom:6px}
 .qg-note p{margin:0;font-size:15px;font-weight:600;line-height:1.55;color:var(--ink)}
 .qg .q{border:0;background:transparent;border-radius:0;padding:22px 0 26px;box-shadow:none}
 .qg .q+.q{border-top:1px solid var(--line)}
 .qg .q.miss{box-shadow:inset 3px 0 0 var(--accent);background:var(--accent-soft);margin:0 -24px;padding-left:24px;padding-right:24px}
-.qg .q-fig{margin:18px 0 4px}
+.qg .q-fig{margin:0 -24px;border:0;border-radius:0;background:transparent}   /* 박스 안 캡처: 좌우 여백 없이 꽉 차게 (박스 속 박스 X) */
 .q .qt{margin:0;padding:0;font-size:15px;font-weight:700;line-height:1.55;display:flex;gap:12px;min-width:0}
 .q .qt>span:last-child{min-width:0}
 .qn{color:var(--accent);font-variant-numeric:tabular-nums;flex:none;min-width:.8em}
