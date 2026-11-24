@@ -350,6 +350,16 @@ body.frameless .survey{padding:16px max(16px,env(safe-area-inset-left,0px)) 16px
 .sv-head p{margin:6px 0 0;color:var(--muted);font-size:13.5px;line-height:1.55}
 .q{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:22px 24px 26px;margin:0;min-width:0;display:flex;flex-direction:column;gap:18px}
 .q.miss{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.qg{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:16px;overflow:hidden;margin:0;min-width:0}
+.qg-hd{margin:0;padding:13px 24px;background:var(--ink);color:var(--panel);font-size:16px;font-weight:700;line-height:1.4;letter-spacing:-.2px}
+.qg-bd{padding:4px 24px 6px;display:flex;flex-direction:column}
+.qg-note{margin:18px 0 4px;padding:16px 18px;border-radius:12px;background:var(--accent-soft)}
+.qg-note b{display:block;color:var(--accent);font-size:14px;font-weight:700;margin-bottom:6px}
+.qg-note p{margin:0;font-size:15px;font-weight:600;line-height:1.55;color:var(--ink)}
+.qg .q{border:0;background:transparent;border-radius:0;padding:22px 0 26px;box-shadow:none}
+.qg .q+.q{border-top:1px solid var(--line)}
+.qg .q.miss{box-shadow:inset 3px 0 0 var(--accent);background:var(--accent-soft);margin:0 -24px;padding-left:24px;padding-right:24px}
+.qg .q-fig{margin:18px 0 4px}
 .q .qt{margin:0;padding:0;font-size:15px;font-weight:700;line-height:1.55;display:flex;gap:12px;min-width:0}
 .q .qt>span:last-child{min-width:0}
 .qn{color:var(--accent);font-variant-numeric:tabular-nums;flex:none;min-width:.8em}
@@ -661,35 +671,41 @@ const STUDY = {
   // {rec} 카드/콘텐츠 · {tab} 상품/추천 · 이미지 경로의 {cond}=fin-a… {dom}=fin/ott
   surveys: {
     T0: { title: '다음 문항에 답해주세요.', items: [
+      { type: 'group', title: '기본 정보' },
       { id: 'T0_q1', no: '1', type: 'choice', text: '귀하의 성별은 무엇입니까?', options: ['여성', '남성'] },
       { id: 'T0_q2', no: '2', type: 'choice', text: '귀하의 연령대는 무엇입니까?', options: ['만 19세 미만', '만 19~29세', '만 30~39세', '만 40~49세', '만 50~59세', '만 60세 이상'] },
+      { type: 'group', title: '{field} 앱 이용 경험' },
       { id: 'T0_q3_1', no: '3-1', dom: 'fin', type: 'choice', text: '최근 1개월 동안 모바일 금융 앱(은행·카드·간편결제)을 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
       { id: 'T0_q3_2', no: '3-2', dom: 'fin', type: 'yesno', text: '최근 1개월 동안 금융 앱에서 AI가 골라 주는 맞춤 추천(상품, 서비스 등)을 이용한 적이 있습니까?' },
       { id: 'T0_q3_3', no: '3-1', dom: 'ott', type: 'choice', text: '최근 1개월 동안 OTT 서비스(영상 스트리밍)를 얼마나 자주 이용했나요?', options: ['이용하지 않았다', '한 달에 1~3번', '일주일에 1~2번', '일주일에 3~6번', '거의 매일'] },
       { id: 'T0_q3_4', no: '3-2', dom: 'ott', type: 'yesno', text: '최근 1개월 동안 OTT 앱에서 AI가 골라 주는 맞춤 추천(콘텐츠, 서비스 등)을 이용한 적이 있습니까?' },
+      { type: 'group', title: '개인정보에 대한 생각' },
       { id: 'T0_q4_1', no: '4-1', type: 'likert', text: '서비스에서 내 개인정보가 어떻게 수집·이용·공유될지 결정할 권리는 나에게 있다고 생각한다.' },
       { id: 'T0_q4_2', no: '4-2', type: 'likert', text: '내 개인정보가 온라인 서비스에서 어떻게 활용되는지 아는 것은 나에게 매우 중요하다.' },
       { id: 'T0_q4_3', no: '4-3', type: 'likert', text: '서비스가 내 개인정보를 필요 이상으로 많이 수집하는 것이 우려된다.' }
     ] },
     // v2.0 파일럿: 조작점검(수혜 주체 3-1·3-2)은 T2 종속변수 뒤로 옮김 · 옛 고지 캡처 삭제 — 열 이름은 본실험과 같게 두고 화면 번호만 1~6
-    T1: { title: '실제로 사용하는 {field} 서비스라고 생각하며 답해주세요.', sub: true, items: [
+    T1: { title: '다음 문항에 답해주세요.', sub: true, items: [
+      { type: 'group', title: '평소 브랜드 신뢰에 대해', note: '평소 실제로 사용하는 {field} 서비스라고 생각하며 응답해주세요' },
       { id: 'T1_q1_1', no: '1-1', type: 'likert', text: '나는 {B} 브랜드를 신뢰한다.' },
       { id: 'T1_q1_2', no: '1-2', type: 'likert', text: '나는 {B} 브랜드에 의지할 수 있다.' },
       { id: 'T1_q1_3', no: '1-3', type: 'likert', text: '{B} 브랜드는 정직한 브랜드이다.' },
       { id: 'T1_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
+      { type: 'group', title: '{app} 상황에 대해' },
       { id: 'T1_q2', no: '2', type: 'likert', text: '{B}의 개인정보({data}) 활용 방식은 AI {rec} 추천 상황에 적절하다.' },
       { id: 'T1_q4', no: '3', type: 'likert', text: '{B}에서 다루는 개인정보({data})는 민감하게 느껴진다.' },
       { id: 'T1_q5', no: '4', type: 'likert', text: '이 정보({data})가 원하지 않는 방식으로 활용되면 나에게 미치는 영향이 클 것 같다.' },
       { id: 'T1_q7', no: '5', type: 'likert', text: '응답 확인을 위해 이 문항에서는 3을 선택해 주세요.' },   // 주의 점검: 정답 3
       { id: 'T1_q8', no: '6', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' }
     ] },
-    // v2.0 파일럿: 조작점검은 모든 종속변수 뒤 — 9번 목적 회상(T2_q10, 문구·보기 교체) · 10번 수혜 주체(T2_q13, 신규) · 11번 범위 회상(T2_q14, 신규)
-    //   이어서 12번 현실성(T2_q11) · 13번 몰입(T2_q12). 주의점검은 T1 5번(T1_q7) 하나만 (T2_q9 삭제). 9번 앞에 고지 3장 캡처(가림)
+    // v2.0 파일럿: 박스 3개 — ① 브랜드 신뢰(1-1~1-4) ② 씽킹트래블(캡처 · 2~8 · 9 현실성 T2_q11 · 10 몰입 T2_q12) ③ 안내 화면(고지 3장 캡처 · 11 목적 회상 T2_q10 · 12 수혜 주체 T2_q13 · 13 범위 회상 T2_q14)
     T2: { title: '방금 본 화면을 떠올리며 답해주세요.', sub: true, items: [
+      { type: 'group', title: '{app} 브랜드 신뢰에 대해' },
       { id: 'T2_q1_1', no: '1-1', type: 'likert', text: '나는 여전히 {B} 브랜드를 신뢰한다.' },
       { id: 'T2_q1_2', no: '1-2', type: 'likert', text: '나는 여전히 {B} 브랜드에 의지할 수 있다.' },
       { id: 'T2_q1_3', no: '1-3', type: 'likert', text: '{B} 브랜드는 정직한 브랜드이다.' },
       { id: 'T2_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
+      { type: 'group', title: '씽킹트래블에 대해' },
       { type: 'fig', src: 'img/cap_travel_pilot_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
       { id: 'T2_q2', no: '2', type: 'likert', text: '{B}의 {data} 활용 방식은 씽킹트래블(여행)의 여행지 추천 상황에 적절하다.' },
       { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블(여행)의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
@@ -705,12 +721,13 @@ const STUDY = {
       { id: 'T2_q6_3', no: '6-3', type: 'likert', text: '이 브랜드가 나를 실망시키더라도 나는 이 브랜드({app}, 씽킹트래블)에 다시 한번 기회를 줄 의향이 있다.' },
       { id: 'T2_q7', no: '7', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})의 출처는 어디입니까?', options: ['앞서 이용한 {B}의 이용 데이터', '씽킹트래블(여행) 내부에서 생성된 데이터', '외부 광고회사', '기타'] },   // 정답 1 · 기타는 T2_q7_etc 열
       { id: 'T2_q8', no: '8', type: 'choice', other: true, text: '씽킹트래블(여행)의 AI 추천 여행지 화면에 따르면 개인정보({src})가 활용된 목적은 무엇인가요?', options: ['AI 여행지 추천', '기존 서비스의 오류 수정', '기타'] },   // 정답 1 · 기타는 T2_q8_etc 열
+      { id: 'T2_q11', no: '9', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
+      { id: 'T2_q12', no: '10', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' },
+      { type: 'group', title: '{app} 안내 화면에 대해' },
       { type: 'fig', src: 'img/cap_notice_pilot_{dom}.png', alt: '{tab} 탭에 처음 들어갔을 때 뜬 안내 팝업 (핵심 문구는 회색으로 가림)' },   // 목적 회상·수혜 주체·활용 범위(9~11)가 가리키는 팝업
-      { id: 'T2_q10', no: '9', type: 'choice', text: '{B}의 {tab} 탭에 처음 들어갔을 때 뜬 안내 팝업은 내 {data2} 정보를 어디에 사용한다고 했나요?', options: ['앱의 {item} 목록 구성', '{org}의 신규 {item} 기획', '개인의 {perk} 혜택', '기억나지 않는다'] },   // 정답 A① B② C③
-      { id: 'T2_q13', no: '10', type: 'likert', ends: ['{app}(회사)', '나(사용자)'], text: '처음 본 안내에 따르면, 내 데이터를 활용해 주로 이득을 보는 쪽은 누구였나요?' },   // 1 회사 ~ 7 사용자 · 예측 B < A < C
-      { id: 'T2_q14', no: '11', type: 'choice', text: '처음 본 안내에 따르면, 내 정보를 어디에서 활용한다고 했나요?', options: ['{app} 내부', '외부 제휴사', '범위는 안내하지 않았다', '기억나지 않는다'] },   // 정답 ① (전 조건)
-      { id: 'T2_q11', no: '12', type: 'likert', text: '제시된 화면은 실제 서비스 이용 과정에서 볼 수 있을 법한 화면이었다.' },
-      { id: 'T2_q12', no: '13', type: 'likert', text: '나는 실제로 씽킹 서비스를 이용하는 상황이라고 생각하며 응답했다.' }
+      { id: 'T2_q10', no: '11', type: 'choice', text: '{B}의 {tab} 탭에 처음 들어갔을 때 뜬 안내 팝업은 내 {data2} 정보를 어디에 사용한다고 했나요?', options: ['앱의 {item} 목록 구성', '{org}의 신규 {item} 기획', '개인의 {perk} 혜택', '기억나지 않는다'] },   // 정답 A① B② C③
+      { id: 'T2_q13', no: '12', type: 'likert', ends: ['{app}(회사)', '나(사용자)'], text: '처음 본 안내에 따르면, 내 데이터를 활용해 주로 이득을 보는 쪽은 누구였나요?' },   // 1 회사 ~ 7 사용자 · 예측 B < A < C
+      { id: 'T2_q14', no: '13', type: 'choice', text: '처음 본 안내에 따르면, 내 정보를 어디에서 활용한다고 했나요?', options: ['{app} 내부', '외부 제휴사', '범위는 안내하지 않았다', '기억나지 않는다'] },   // 정답 ① (전 조건)
     ] }
   }
 };
@@ -1749,6 +1766,7 @@ function resetView() {
   try { window.scrollTo(0, 0); } catch (_) {}
 }
 function itemHTML(it) {
+  if (it.type === 'group') return '';   // 묶음 머리는 groupHTML에서
   if (it.type === 'fig') return `<figure class="q-fig"><img src="${esc(tok(it.src))}" alt="${esc(tok(it.alt || ''))}"></figure>`;
   const head = `<div class="qt" id="qt_${it.id}"><span class="qn">${it.no}.</span><span>${esc(tok(it.text))}</span></div>`;
   if (it.type === 'likert') {
@@ -1769,6 +1787,20 @@ function itemHTML(it) {
     <textarea id="ta_${it.id}" rows="${it.rows || 3}" maxlength="2000" placeholder="자유롭게 적어 주세요."></textarea></div>`;
 }
 const shown = it => !it.dom || it.dom === S.dom;   // 배정 분야 문항만
+// 문항 묶음: { type: 'group', title, note } 다음 문항들을 박스 하나로 (검은 머리 + 선택 안내 박스 + 문항 사이 구분선)
+function groupHTML(items) {
+  let html = '', open = false;
+  items.forEach(it => {
+    if (it.type === 'group') {
+      if (open) html += '</div></section>';
+      html += `<section class="qg"><h3 class="qg-hd">${esc(tok(it.title))}</h3><div class="qg-bd">`
+        + (it.note ? `<div class="qg-note"><b>안내</b><p>${esc(tok(it.note))}</p></div>` : '');
+      open = true; return;
+    }
+    html += itemHTML(it);
+  });
+  return html + (open ? '</div></section>' : '');
+}
 function missing(id) {
   const cur = P.cur[id] || {};
   return STUDY.surveys[id].items.filter(it => it.id && it.type !== 'fig' && shown(it))
@@ -1786,7 +1818,7 @@ function renderSurvey(id) {
   const sub = pg.sub && canBack() ? `<p>화면은 <span class="bk" aria-label="이전">${IC.left(12)}</span> 버튼을 눌러 다시 볼 수 있어요.</p>` : '';
   $('svIn').innerHTML = svTop() + `<header class="sv-head"><h2>${esc(tok(pg.title))}</h2>${sub}</header>`
     + (ro ? `<p class="sv-ro">이미 제출한 응답이에요. 바꿀 수 없어요.</p>` : '')
-    + pg.items.filter(it => shown(it) && !(ro && it.type === 'fig')).map(itemHTML).join('')
+    + groupHTML(pg.items.filter(it => shown(it) && !(ro && it.type === 'fig')))
     + `<p class="sv-err" id="svErr" hidden>응답하지 않은 문항이 있어요. 표시된 문항에 답해 주세요.</p>`
     + `<div class="sv-foot"><button class="g-btn sv-next" data-nav="next">다음</button></div>`;
   showSurvey(true);
