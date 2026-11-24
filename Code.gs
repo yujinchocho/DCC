@@ -2,7 +2,7 @@
  * DCC 실험 — 응답·행동 기록 저장소 (Google Apps Script)
  *
  * 설치
- *  1. 연구 버전마다 구글 시트를 따로 하나씩 만들어요. (사전검사용 시트 / 본실험용 시트)
+ *  1. 연구 버전마다 구글 시트를 따로 하나씩 만들어요. (사전검사용 시트 / 본실험용 시트 / v2.0 파일럿용 시트)
  *  2. 시트 메뉴 [확장 프로그램 → Apps Script]를 열고, 이 파일 내용을 전부 붙여넣고 저장해요.
  *  3. [배포 → 새 배포 → 유형: 웹 앱]  실행 사용자: 나 / 액세스 권한: 모든 사용자 → '웹 앱 URL'(…/exec) 복사
  *  코드를 고친 뒤에는 [배포 관리 → 연필(수정) → 버전: 새 버전 → 배포]로 다시 배포해야 반영돼요. (주소는 그대로예요)
@@ -40,13 +40,14 @@ const HEAD = {
     'home_ms', 'home_taps', 'notice_ms', 'notice_early_taps', 'explore_ms', 'seen', 'carousel_moves',
     'details', 'detail_ms', 'travel_ms', 'info_first_ms', 'info_prompted', 'info_opens', 'info_total_ms',
     'hidden_ms', 'inactive_taps', 'offtask_taps', 'nav_blocked', 'survey_pages', 'resumes',
-    'sit1_ms', 'sit2_ms', 'back_navs', 'revisits', 'revisit_ms', 'revisit_pages', 'next_blocked'],
+    'sit1_ms', 'sit2_ms', 'back_navs', 'revisits', 'revisit_ms', 'revisit_pages', 'next_blocked',
+    'notice_p1_ms', 'notice_p2_ms', 'notice_p3_ms'],
   errors: ['at', 'error', 'stack', 'payload_head']
 };
 
 // 머리글 설명 (칸에 마우스를 올리면 보임)
 const NOTE = {
-  pid: '참여자 번호 (SS001…, 테스트는 TEST001…)', cond: '배정 조건 (fin=금융, ott=OTT / a=중립, b=서비스 목적, c=사용자 혜택)',
+  pid: '참여자 번호 (본실험 MS001…, v2.0 파일럿 PL001…, 테스트는 TEST001…)', cond: '배정 조건 (fin=금융, ott=OTT / a=중립, b=본실험 서비스 목적·v2.0 회사 이익, c=본실험 사용자 혜택·v2.0 사용자 이익)',
   started_at: '참여 시작(조건 배정) 시각', completed: '끝까지 마쳤는지 (TRUE/FALSE)', completed_at: '완료 시각',
   code: '완료 코드 (사전검사는 사용 안 함)', device_key: '같은 기기로 다시 들어왔는지 확인하는 무작위 값 (분석에 쓰지 않음)',
   received_at: '시트에 저장된 시각 (한국 시간)', page: '설문 페이지 (본실험: T0=시작 전, T1=추천 탭 후, T2=씽킹트래블 후 / 사전검사: T0, T00a·b, T1, T2a~d)',
@@ -57,7 +58,8 @@ const NOTE = {
   layout: '화면 방식 (framed=PC에서 폰 틀 안, mobile-full=휴대폰 전체 화면)', touch: '터치 기기 여부',
   screen_w: '브라우저 화면 너비 (px)', screen_h: '브라우저 화면 높이 (px)',
   home_ms: '1단계 홈 화면 탐색 시간 (밀리초)', home_taps: '1단계에서 누른 횟수',
-  notice_ms: '고지가 뜬 뒤 확인을 누르기까지 걸린 시간 (밀리초)', notice_early_taps: '확인 버튼이 잠긴 동안 누른 횟수',
+  notice_ms: '고지가 뜬 뒤 닫기까지 걸린 시간 (밀리초) — v2.0 파일럿은 3장 안내 전체', notice_early_taps: '버튼이 잠긴 동안 누른 횟수 (v2.0: 장마다 3초 잠금 중 [계속하기])',
+  notice_p1_ms: 'v2.0 고지 1장(새 페이지 안내)에 머문 시간 (밀리초)', notice_p2_ms: 'v2.0 고지 2장(★ 목적 문장)에 머문 시간 (밀리초)', notice_p3_ms: 'v2.0 고지 3장(범위 약속)에 머문 시간 (밀리초)',
   explore_ms: '고지 확인 뒤 추천 탭 탐색 시간 (밀리초)', seen: '추천 핵심 3개 중 본 개수', carousel_moves: '추천 카드·포스터를 넘긴 횟수',
   details: '카드·콘텐츠 상세 화면을 연 횟수', detail_ms: '상세 화면에 머문 시간 합계 (밀리초)',
   travel_ms: '씽킹트래블 탐색 시간 (밀리초)', info_first_ms: '씽킹트래블에 들어와서 ⓘ를 처음 누르기까지 (밀리초)',
