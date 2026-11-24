@@ -361,7 +361,7 @@ body.frameless .survey{padding:16px max(16px,env(safe-area-inset-left,0px)) 16px
 .qg .q.miss{box-shadow:inset 3px 0 0 var(--accent);background:var(--accent-soft);margin:0 -24px;padding-left:24px;padding-right:24px}
 .qg .q-fig{margin:0 -24px 22px;border:0;border-radius:0;background:transparent}   /* 박스 안 캡처: 좌우 여백 없이 꽉 차게 (박스 속 박스 X) */
 .qg .q-fig+.q{border-top:1px solid var(--line)}   /* 캡처 아래 구분선 */
-.qg .q-fig.pad{margin-left:-14px;margin-right:-14px}   /* 고지 캡처: 박스 가장자리에서 좌우 10px */
+.qg .q-fig.pad{margin-left:-14px;margin-right:-14px}   /* 박스 안 캡처(씽킹트래블·고지): 박스 가장자리에서 좌우 10px */
 .q .qt{margin:0;padding:0;font-size:15px;font-weight:700;line-height:1.55;display:flex;gap:12px;min-width:0}
 .q .qt>span:last-child{min-width:0}
 .qn{color:var(--accent);font-variant-numeric:tabular-nums;flex:none;min-width:.8em}
@@ -708,7 +708,7 @@ const STUDY = {
       { id: 'T2_q1_3', no: '1-3', type: 'likert', text: '{B} 브랜드는 정직한 브랜드이다.' },
       { id: 'T2_q1_4', no: '1-4', type: 'likert', text: '{B} 브랜드는 안심하고 이용할 수 있는 브랜드이다.' },
       { type: 'group', title: '씽킹트래블에 대해' },
-      { type: 'fig', src: 'img/cap_travel_pilot_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
+      { type: 'fig', pad: true, src: 'img/cap_travel_pilot_{dom}.jpg', alt: '씽킹트래블의 AI 추천 여행지' },
       { id: 'T2_q2', no: '2', type: 'likert', text: '{B}의 {data} 활용 방식은 씽킹트래블(여행)의 여행지 추천 상황에 적절하다.' },
       { id: 'T2_q3_1', no: '3-1', type: 'likert', text: '씽킹트래블(여행)의 정보 활용 범위는 내가 {B}를 이용하며 이해한 범위를 벗어났다.' },
       { id: 'T2_q3_2', no: '3-2', type: 'likert', text: '{B}가 내 정보를 사용한 목적은 내가 예상한 목적과 달랐다.' },
