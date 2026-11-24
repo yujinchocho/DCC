@@ -215,6 +215,15 @@ body.frameless .nav{bottom:14px}
 .pn .excard.in{opacity:1;transform:none}
 .pn .exlbl{position:absolute;left:0;right:0;top:100px;text-align:center;font-size:14px;font-weight:600;color:#606060;opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
 .pn .exlbl.in{opacity:1;transform:none}
+.pn .fd{position:absolute;left:112px;top:162px;width:178px;height:142px;transform-origin:50% 100%}
+.pn .fd-tab{position:absolute;left:0;top:0;width:64px;height:40px;border-radius:14px 14px 0 0;background:linear-gradient(180deg,#3a5bd3 0,#3a5bd3 20px,#b8c5f2 41px);border:1.5px solid #eceef4;border-bottom:0;box-sizing:border-box}
+.pn .fd-back{position:absolute;left:0;top:11px;width:178px;height:131px;border-radius:16px;background:linear-gradient(180deg,#3a5bd3 0,#3a5bd3 9px,#b8c5f2 30px);border:1.5px solid #eceef4;box-sizing:border-box}
+.pn .fd .dcard{justify-content:flex-start;padding-top:6px;z-index:1}
+.pn .dcard.fz2{transition:transform .9s cubic-bezier(.45,0,.25,1),opacity .4s}
+.pn .dcard.fz2.sink{transition:transform .55s cubic-bezier(.55,0,.85,.45),opacity .2s}
+.pn .fd-front{position:absolute;left:0;top:32px;width:178px;height:110px;border-radius:16px;background:#385cd4;border:1.5px solid rgba(255,255,255,.9);box-sizing:border-box;z-index:2;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800;letter-spacing:-.5px;box-shadow:0 -2px 10px rgba(20,40,120,.12)}
+.pn .fd.pulse{animation:pnpulse .6s cubic-bezier(.3,1.6,.5,1)}
 .pn .folder{position:absolute;left:149px;top:233px;width:103px;height:80px}
 .pn .folder .tabf{position:absolute;left:0;top:0;width:52px;height:26px;border-radius:6px 6px 0 0;background:#2b58cf}
 .pn .folder .bodyf{position:absolute;left:0;top:14px;width:103px;height:66px;border-radius:6px;background:#2f63e0;color:#fff;font-weight:800;font-size:17px;letter-spacing:-.3px;display:flex;align-items:center;justify-content:center}
@@ -1289,7 +1298,7 @@ function markSeen(id, how) {
 }
 
 /* ================= 고지 (v2.0: 3장 안내) =================
- * 1장 새 페이지 안내(상품 카드 2번 회전) → 2장 ★ 목적 문장(데이터 칩이 흐려지며 겹쳐 흰 박스 → 터지며 추천 예시: 금융 카드 / OTT 포스터) → 3장 범위 약속(칩이 폴더 안으로).
+ * 1장 새 페이지 안내(상품 카드 2번 회전) → 2장 ★ 목적 문장(데이터 칩이 흐려지며 겹쳐 흰 박스 → 터지며 추천 예시: 금융 카드 / OTT 포스터) → 3장 범위 약속(칩이 모여 폴더 뒤판과 앞판 사이로 들어감).
  * 제목·부제는 애니메이션 없음 · 이미지 영역만 옆으로 넘어감 · 애니메이션은 장마다 한 번만 재생 · 자동 넘김 없음
  * [계속하기]는 장마다 CFG.NOTICE_PAGE_LOCK초 뒤 활성(파일럿: 0 = 바로) · 닫기(X) 없음 · 장별 머문 시간 기록(notice_p1~3_ms)
  */
@@ -1310,8 +1319,10 @@ function showNotice() {
           return `<i class="spark" style="background:${i % 2 ? '#4880ed' : '#f2b14a'};--dx:${Math.round(Math.cos(a) * r)}px;--dy:${Math.round(Math.sin(a) * r)}px"></i>`; }).join('')
       + `<div class="exlbl" id="nLbl">${N.card.label}</div><div class="excard" id="nCard"><img src="${N.card.img}" alt="${N.card.alt}" width="167" height="224"></div>`
     : chip(N.chips[0], 'n2a', 'left:65px;top:150px;opacity:0') + chip(N.chips[1], 'n2b', 'left:213px;top:150px;opacity:0');
-  const p3 = chip(N.chips[0], 'sm fz n3a', 'left:118px;top:116px;opacity:0') + chip(N.chips[1], 'sm fz n3b', 'left:206px;top:116px;opacity:0')
-    + `<div class="folder" id="nFolder"><div class="tabf"></div><div class="bodyf">${N.folder}</div></div>`;
+  // 3장: 폴더 = 뒤판(탭) · 칩 · 앞판 순서로 겹침 → 칩이 뒤판과 앞판 사이로 내려가 폴더 안에 들어가는 모양
+  const p3 = `<div class="fd" id="nFolder"><div class="fd-back"></div><div class="fd-tab"></div>`
+    + chip(N.chips[0], 'sm fz2 n3a', 'left:6px;top:-96px;opacity:0') + chip(N.chips[1], 'sm fz2 n3b', 'left:94px;top:-96px;opacity:0')
+    + `<div class="fd-front">${N.folder}</div></div>`;
   const el = document.createElement('div');
   el.className = 'pn'; el.id = 'notice';
   el.innerHTML = `${SBAR}<div class="pn-hd" id="pnHd">${N.head}</div>
@@ -1370,9 +1381,10 @@ function noticeAnim(n) {
     nAt(4900, () => q('#nLbl').classList.add('in'));
   } else {
     const a = q('.n3a'), b = q('.n3b');
-    nAt(800, () => { a.style.opacity = 1; b.style.opacity = 1; });
-    nAt(2000, () => { a.style.transform = 'translate(32px,118px) scale(.3)'; b.style.transform = 'translate(-32px,118px) scale(.3)'; a.style.opacity = 0; b.style.opacity = 0; });
-    nAt(2850, () => q('#nFolder').classList.add('pulse'));
+    nAt(800, () => { a.style.opacity = 1; b.style.opacity = 1; });   // 폴더 위에 칩 두 개
+    nAt(1900, () => { a.style.transform = 'translate(31px,99px)'; b.style.transform = 'translate(-31px,99px)'; });   // 모이면서 폴더 입구로 (아이콘만 앞판 위로 보임)
+    nAt(2900, () => [a, b].forEach((d, i) => { d.classList.add('sink'); d.style.transform = `translate(${i ? -31 : 31}px,166px)`; }));   // 앞판 뒤로 쏙 들어감
+    nAt(3500, () => { a.style.opacity = 0; b.style.opacity = 0; q('#nFolder').classList.add('pulse'); });
   }
 }
 // 화면 높이에 맞춰 배치 (874 기준: 제목 503 · 버튼 782). 이미지 영역은 남는 높이에 맞춰 줄어듦
