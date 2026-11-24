@@ -216,8 +216,8 @@ body.frameless .nav{bottom:14px}
 .pn .exlbl{position:absolute;left:0;right:0;top:100px;text-align:center;font-size:14px;font-weight:600;color:#606060;opacity:0;transform:translateY(8px);transition:opacity .55s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
 .pn .exlbl.in{opacity:1;transform:none}
 .pn .fd{position:absolute;left:112px;top:162px;width:178px;height:142px;transform-origin:50% 100%}
-.pn .fd-tab{position:absolute;left:0;top:0;width:64px;height:40px;border-radius:14px 14px 0 0;background:linear-gradient(180deg,#3a5bd3 0,#3a5bd3 20px,#b8c5f2 41px);border:1.5px solid #eceef4;border-bottom:0;box-sizing:border-box}
-.pn .fd-back{position:absolute;left:0;top:11px;width:178px;height:131px;border-radius:16px;background:linear-gradient(180deg,#3a5bd3 0,#3a5bd3 9px,#b8c5f2 30px);border:1.5px solid #eceef4;box-sizing:border-box}
+.pn .fd-back{position:absolute;left:0;top:0;width:178px;height:142px}   /* 뒤판: 탭과 몸통을 이음선 없이 한 모양(SVG)으로 */
+.pn .fd-back svg{display:block}
 .pn .fd .dcard{justify-content:flex-start;padding-top:6px;z-index:1}
 .pn .dcard.fz2{transition:transform .9s cubic-bezier(.45,0,.25,1),opacity .4s}
 .pn .dcard.fz2.sink{transition:transform .55s cubic-bezier(.55,0,.85,.45),opacity .2s}
@@ -1320,7 +1320,7 @@ function showNotice() {
       + `<div class="exlbl" id="nLbl">${N.card.label}</div><div class="excard" id="nCard"><img src="${N.card.img}" alt="${N.card.alt}" width="167" height="224"></div>`
     : chip(N.chips[0], 'n2a', 'left:65px;top:150px;opacity:0') + chip(N.chips[1], 'n2b', 'left:213px;top:150px;opacity:0');
   // 3장: 폴더 = 뒤판(탭) · 칩 · 앞판 순서로 겹침 → 칩이 뒤판과 앞판 사이로 내려가 폴더 안에 들어가는 모양
-  const p3 = `<div class="fd" id="nFolder"><div class="fd-back"></div><div class="fd-tab"></div>`
+  const p3 = `<div class="fd" id="nFolder"><div class="fd-back"><svg width="178" height="142" viewBox="0 0 178 142" aria-hidden="true"><defs><linearGradient id="fdG" x1="0" y1="0" x2="0" y2="142" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3a5bd3"/><stop offset=".14" stop-color="#3a5bd3"/><stop offset=".29" stop-color="#b8c5f2"/></linearGradient></defs><path d="M.75 14.75Q.75 .75 14.75 .75H50Q57 .75 61.5 5.5L65 9.2Q68 12 75 12H163.25Q177.25 12 177.25 26V141.25H.75Z" fill="url(#fdG)" stroke="#eceef4" stroke-width="1.5"/></svg></div>`
     + chip(N.chips[0], 'sm fz2 n3a', 'left:6px;top:-96px;opacity:0') + chip(N.chips[1], 'sm fz2 n3b', 'left:94px;top:-96px;opacity:0')
     + `<div class="fd-front">${N.folder}</div></div>`;
   const el = document.createElement('div');
