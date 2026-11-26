@@ -187,13 +187,13 @@ body.frameless .nav{bottom:14px}
 .pn-pg{position:absolute;top:0;width:402px;height:386px}
 .pn-art{position:absolute;left:0;top:0;width:402px;height:386px;transform-origin:201px 225px}   /* 장마다 그림만 CFG.NOTICE_ART배로 줄임 (글씨·점·버튼은 그대로) */
 .pn-t{position:absolute;left:14px;right:14px;text-align:center;font-size:20px;font-weight:700;line-height:30px;letter-spacing:-.4px;word-break:keep-all}
-.pn-t em{font-style:normal;color:#D9483F}   /* 고지 2·3장 강조: 빨강 (설문 문항 번호와 같은 색) */
+.pn-t em{font-style:normal;color:#1F6FEB}   /* 고지 2·3장 강조: 블루 (11/25 답변 — 빨강은 은행 앱에서 경고 신호) */
 .pn-s{position:absolute;left:14px;right:14px;text-align:center;font-size:14px;line-height:20px;color:#808080;letter-spacing:-.2px}
 .pn-dots{position:absolute;left:0;right:0;display:flex;justify-content:center;gap:6px}
 .pn-dots i{width:6px;height:6px;border-radius:3px;background:#d7d9dd;transition:width .35s,background .35s}
 .pn-dots i.on{width:24px;background:#555}
-.pn-btn{position:absolute;left:41px;width:320px;height:56px;border-radius:10px;background:#000;color:#fff;font-size:16px;font-weight:700;display:flex!important;align-items:center;justify-content:center;transition:background .4s}
-.pn-btn.lock{background:#cfd2d7;cursor:default}
+.pn-btn{position:absolute;left:41px;width:320px;height:56px;border-radius:10px;background:#000;color:#fff;font-size:16px;font-weight:700;display:flex!important;align-items:center;justify-content:center;transition:color .3s}
+.pn-btn.lock{background:#000;color:#8a8d93;cursor:default}   /* 잠금: 배경은 검정 그대로, 글씨만 회색 → 풀리면 흰색 */
 .pn .deck{position:absolute;left:0;top:104px;width:402px;height:250px;perspective:900px}
 .pn .pcard{position:absolute;left:133px;top:27px;width:136px;height:190px;border-radius:10px;background:#eef1fa;border:1px solid #e3e7f2;box-sizing:border-box;
   box-shadow:0 8px 22px rgba(30,50,110,.12);transition:transform .8s cubic-bezier(.3,.9,.3,1),opacity .8s;padding:14px 12px}
@@ -611,9 +611,9 @@ const CFG = {
   COACH_AFTER: 8,  // 홈: 하단 상품/추천 탭 말풍선이 뜨기까지
   HOME_MIN: 10,  // 홈: '다음'이 활성화되기까지
   NOTICE_TEXT_ONLY: true,  // 고지: 그림·애니메이션 없이 문구만 (false면 그림 버전)
-  NOTICE_NUDGE: [2, 3, 2],  // 고지 1·2·3장: 이 시간(초) 안에 [계속하기]를 누르면 '충분히 확인하셨나요?' 말풍선 (장마다 한 번, 다시 누르면 넘어감)
+  NOTICE_NUDGE: [0, 0, 0],  // (꺼 둠 — 11/25 답변대로 3초 잠금 사용) 고지 1·2·3장: 이 시간(초) 안에 누르면 '충분히 확인하셨나요?' 말풍선
   NOTICE_ART: 0.75,  // 고지 그림(카드·칩·폴더) 크기 배율 — 글씨 크기는 그대로
-  NOTICE_PAGE_LOCK: 0,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지 — 파일럿: 0 = 바로 누를 수 있음 (닫기 X 없음 · 자동 넘김 없음)
+  NOTICE_PAGE_LOCK: 3,  // 고지 3장: 장마다 [계속하기]가 활성화되기까지(초) — 11/25 답변: 3초 잠금 (닫기 X 없음 · 자동 넘김 없음)
   HL_DELAY: 0,        // 고지가 뜬 뒤 안내 문구 강조까지 — 강조 문구가 있는 버전만
   EXPLORE_MIN: 10,  // 추천 탭: 고지를 닫은 뒤 '다음'이 활성화되기까지
   EXPLORE_SEEN: 0,
@@ -2115,7 +2115,7 @@ function updateMetrics() {
     ['홈 체류', M.home_ms ? fmt(M.home_ms) : '–'],
     ['고지 3장 확인까지', fmt(M.notice_ms)],
     ['고지 장별 (1·2·3장)', [M.notice_p1_ms, M.notice_p2_ms, M.notice_p3_ms].map(fmt).join(' · ')],
-    ['기준 시간 전 계속하기 탭', M.notice_early_taps + '회'],
+    ['잠금 중 계속하기 탭', M.notice_early_taps + '회'],
     ['추천 탭 탐색', fmt(M.explore_ms)],
     ['캐러셀 이동', M.carousel_moves + '회'],
     ['상세 화면 열람', M.details + '회 · ' + (M.detail_ms / 1000).toFixed(1) + '초'],
@@ -2142,7 +2142,7 @@ function renderLog() {
 }
 function setSpec() {
   const f = FAST ? ' (지금은 1/10)' : '';
-  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장(문구만) · ${CFG.NOTICE_NUDGE.join('/')}초 전에 누르면 말풍선 · 추천 탭 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 (0초 = 대기 없음) · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
+  $('spec').textContent = `홈 말풍선 ${CFG.COACH_AFTER}초 · 홈은 하단 탭으로만 이동 · 고지 3장(문구만) · 장마다 ${CFG.NOTICE_PAGE_LOCK}초 잠금 · 추천 탭 ${CFG.EXPLORE_MIN}초 · 씽킹트래블 ${CFG.TRAVEL_MIN}초 뒤 다음 가능 (0초 = 대기 없음) · 뒤로 가기 범위: ${CFG.BACK_SCOPE === 'all' ? '전체' : '같은 단계 안'}${f}`;
 }
 function markCond() {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === S.cond));
