@@ -17,17 +17,25 @@
  *  - summary   : 끝까지 마친 참여자의 행동 지표 요약 (참여자당 한 줄)
  *  - responses : 설문 응답 (참여자당 한 줄, 문항마다 한 열. 열 이름은 시점_문항번호, 예: T0_q9, T2_q14_1)
  *  - pages     : 설문 페이지 제출 기록 (페이지별 응답 시간)
- *  - events    : 행동 기록 (이벤트당 한 줄). 메뉴 [연구 도구 → 참여자별로 정리]로 참여자별 접기
+ *  - events    : 행동 기록 (브라우저가 30초마다 모아 보낸 묶음 하나 = 한 줄, 행동들은 events_json 칸에)
+ *  - events_flat: 메뉴 [연구 도구 → 행동 기록 펼치기]를 누르면 생김 — 한 행동 = 한 줄, 참여자별 시간 순·접기 (분석은 이 탭으로)
  *  - errors    : 저장 중 오류가 나면 내용이 남아요 (정상이면 생기지 않아요)
  * 머리글(1행) 칸에 마우스를 올리면 한글 설명이 보여요.
  *
- * 진행 상태 (assign의 status 열) — 배정·설문 제출·완료가 들어올 때마다 전체를 다시 계산해요 (5초마다 오는 행동 기록 때는 생략)
+ * 진행 상태 (assign의 status 열) — 설문 제출·완료 때 본인 줄은 바로 바뀌고, 전체 재계산(이탈 판정·색)은 1분에 한 번까지만 해요 (몰릴 때 서버 부담↓)
  *  - 미시작 : 동의·배정은 했지만 첫 설문 페이지를 아직 내지 않음 (자극을 보기 전)
  *  - 진행 중: 첫 설문은 냈고, 마지막 기록이 IDLE_MIN분 안에 있음
  *  - 이탈   : 첫 설문은 냈지만, 마지막 기록 뒤 IDLE_MIN분 넘게 아무 기록이 없음
  *  - 완료   : 마무리 화면까지 도착
  *  기록이 안 들어오는 동안에도 '진행 중 → 이탈'이 바뀌게 하려면 메뉴 [연구 도구 → 상태 자동 새로고침 켜기]를 한 번 눌러 주세요.
  *  예전 기록의 마지막 위치를 채우려면 [연구 도구 → 상태 다시 계산 (전체)]를 누르면 돼요.
+ *
+ * 한꺼번에 몰릴 때 (업체 배포)
+ *  - 구글 웹 앱은 '실행 사용자: 나' 계정 하나로 동시에 30개까지만 실행돼요. 그래서 요청 하나하나를 짧게 만들었어요.
+ *    · 행동 기록: 묶음 하나를 한 줄로 저장(칸마다 따로 쓰지 않음), 순서 대기 없이 바로 저장
+ *    · 설문·완료: 순서 대기(최대 25초) 후 저장, 상태 전체 재계산은 1분에 한 번까지만
+ *  - 저장이 실패하거나 '바쁨'이면 페이지가 3·10·30·60초 간격으로 다시 보내요(설문·완료는 서버가 받았다고 답할 때까지).
+ *  - 실패 기록은 errors 탭에 남아요. 'busy'가 가끔 보이는 건 괜찮아요(다시 보내서 저장됨).
  */
 
 const CONDS = ['fin-a', 'fin-b', 'fin-c', 'ott-a', 'ott-b', 'ott-c'];
@@ -40,7 +48,8 @@ const HEAD = {
   assign: ['pid', 'cond', 'status', 'started_at', 'completed', 'completed_at', 'code', 'device_key',
     'last_page', 'last_stage', 'last_screen', 'last_seen'],
   pages: ['received_at', 'pid', 'cond', 'page', 'page_ms', 'answers_json'],
-  events: ['received_at', 'pid', 'cond', 't_ms', 'client_ts', 'type', 'stage', 'screen', 'data_json'],
+  events: ['received_at', 'pid', 'cond', 'n', 't_from', 't_to', 'last_stage', 'last_screen', 'events_json'],   // 보낸 묶음 하나 = 한 줄 (몰릴 때 서버 부담↓)
+  events_flat: ['received_at', 'pid', 'cond', 't_ms', 'client_ts', 'type', 'stage', 'screen', 'data_json'],   // 메뉴 '행동 기록 펼치기'로 만드는 한 행동 = 한 줄
   summary: ['pid', 'cond', 'completed_at', 'layout', 'touch', 'screen_w', 'screen_h',
     'home_ms', 'home_taps', 'notice_ms', 'notice_early_taps', 'explore_ms', 'seen', 'carousel_moves',
     'details', 'detail_ms', 'travel_ms', 'info_first_ms', 'info_prompted', 'info_opens', 'info_total_ms',
@@ -59,7 +68,9 @@ const NOTE = {
   page_ms: '그 설문 페이지에 머문 시간 (밀리초, 1000 = 1초)', answers_json: '그 페이지의 응답 원본',
   t_ms: '참여 시작부터 지난 시간 (밀리초)', client_ts: '참여자 기기의 시각', type: '행동 종류 (예: tap, screen_enter, notice_show)',
   stage: '진행 단계 (home=원 서비스 홈, tab=추천 탭, travel=씽킹트래블, end=종료)', screen: '그때 보고 있던 앱 화면',
-  data_json: '행동의 세부 내용 (누른 버튼, 머문 시간 등)', updated_at: '응답이 마지막으로 저장된 시각',
+  data_json: '행동의 세부 내용 (누른 버튼, 머문 시간 등)', n: '이 줄에 담긴 행동 수 (브라우저가 30초마다·창을 닫을 때 모아 보낸 묶음)',
+  t_from: '묶음 첫 행동의 시각 (참여 시작부터 밀리초)', t_to: '묶음 마지막 행동의 시각 (참여 시작부터 밀리초)',
+  events_json: '묶음 속 행동 전체 (JSON 배열). 한 행동 = 한 줄로 보려면 메뉴 [연구 도구 → 행동 기록 펼치기] → events_flat 탭', updated_at: '응답이 마지막으로 저장된 시각',
   layout: '화면 방식 (framed=PC에서 폰 틀 안, mobile-full=휴대폰 전체 화면)', touch: '터치 기기 여부',
   screen_w: '브라우저 화면 너비 (px)', screen_h: '브라우저 화면 높이 (px)',
   home_ms: '1단계 홈 화면 탐색 시간 (밀리초)', home_taps: '1단계에서 누른 횟수',
@@ -102,8 +113,8 @@ function doPost(e) {
     else if (d.kind === 'page') savePage_(d);
     else if (d.kind === 'events') saveEvents_(d);
     else if (d.kind === 'complete') complete_(d);
-    if (d.kind !== 'events') {   // 진행 상태: 배정·설문 제출·완료가 올 때마다 다시 계산 (5초마다 오는 행동 기록 때는 생략해 서버 부담을 줄임)
-      try { refreshStatus_(); } catch (err2) { logError_(err2, e); }
+    if (d.kind === 'page' || d.kind === 'complete') {   // 진행 상태 전체 재계산: 설문 제출·완료 때, 1분에 한 번까지만 (몰릴 때 순서 대기를 짧게). 본인 줄 상태는 바로 바뀜
+      try { refreshStatusSoon_(); } catch (err2) { logError_(err2, e); }
     }
     return json_(out);
   } catch (err) {
@@ -166,7 +177,7 @@ function savePage_(d) {
   ensureLocalRow_(d);
   sheet_('pages').appendRow([new Date(), d.pid, d.cond, d.page, d.page_ms, JSON.stringify(d.answers)]);
   saveResponses_(d);
-  touch_(d.pid, { last_page: d.page, last_screen: 'survey:' + d.page });
+  touch_(d.pid, { last_page: d.page, last_screen: 'survey:' + d.page, status: '진행 중' });
 }
 
 // responses: 참여자당 한 줄, 문항마다 한 열. 문항 칸에는 문항 문구가 설명으로 붙어요.
@@ -201,21 +212,7 @@ function saveResponses_(d) {
 }
 
 /* ---------- 행동 기록 ---------- */
-function saveEvents_(d) {
-  const sh = sheet_('events');
-  const recv = new Date();
-  const rows = (d.events || []).map(ev => {
-    const rest = {};
-    Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
-    return [recv, d.pid, d.cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)];
-  });
-  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
-  const last = (d.events || []).slice(-1)[0];
-  if (last) {
-    const scr = /^survey_/.test(last.type) && last.page ? 'survey:' + last.page : (last.screen || '');   // 설문 중이면 설문 페이지 이름
-    touch_(d.pid, { last_stage: last.stage || '', last_screen: scr });
-  }
-}
+function saveEvents_(d) { saveEventsFree_(d); }
 
 /* ---------- 완료: assign 갱신 + summary 한 줄 ---------- */
 function complete_(d) {
@@ -229,7 +226,7 @@ function complete_(d) {
     sh.getRange(i + 2, cc, 1, 3).setValues([[true, already && was[1] ? was[1] : new Date(), d.code || '']]);
   }
   else sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '완료', completed: true, completed_at: new Date(), code: d.code || '', last_seen: new Date() }));
-  touch_(d.pid, { last_stage: 'end', last_screen: 'end' });
+  touch_(d.pid, { last_stage: 'end', last_screen: 'end', status: '완료' });
 
   const m = d.metrics || {}, dev = d.device || {};
   const S = sheet_('summary');
@@ -263,18 +260,15 @@ const STATUS_COLOR = { '미시작': '#f1f3f4', '진행 중': '#e8f0fe', '이탈'
 // 참여자 한 명의 마지막 위치를 갱신 (status는 refreshStatus_가 계산)
 // 잠금 없이 저장하는 행동 기록: 한 줄씩 appendRow(겹쳐 써지지 않음) + 진행 상태는 해당 칸만 고침
 function saveEventsFree_(d) {
-  const sh = sheet_('events');
-  const recv = new Date();
-  (d.events || []).forEach(ev => {
-    const rest = {};
-    Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
-    sh.appendRow([recv, d.pid, d.cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)]);
-  });
-  const last = (d.events || []).slice(-1)[0];
-  if (last) {
-    const scr = /^survey_/.test(last.type) && last.page ? 'survey:' + last.page : (last.screen || '');
-    touchCells_(d.pid, { last_stage: last.stage || '', last_screen: scr });
-  }
+  const evs = d.events || []; if (!evs.length) return;
+  const sh = sheet_('events'), recv = new Date();
+  const chunks = []; let cur = [], len = 2;   // 칸 하나에 4만 자까지 — 넘으면 여러 줄로 나눔
+  evs.forEach(ev => { const n = JSON.stringify(ev).length + 1; if (cur.length && len + n > 40000) { chunks.push(cur); cur = []; len = 2; } cur.push(ev); len += n; });
+  if (cur.length) chunks.push(cur);
+  chunks.forEach(c => { const z = c[c.length - 1]; sh.appendRow([recv, d.pid, d.cond, c.length, c[0].t, z.t, z.stage || '', z.screen || '', JSON.stringify(c)]); });
+  const last = evs[evs.length - 1];
+  const scr = /^survey_/.test(last.type) && last.page ? 'survey:' + last.page : (last.screen || '');   // 설문 중이면 설문 페이지 이름
+  touchCells_(d.pid, { last_stage: last.stage || '', last_screen: scr });
 }
 // 행 전체를 다시 쓰지 않고 필요한 칸만 씀 (잠금 없이 써도 완료 표시 등을 덮어쓰지 않게)
 function touchCells_(pid, vals) {
@@ -283,8 +277,11 @@ function touchCells_(pid, vals) {
   const ids = sh.getRange(2, 1, n, 1).getValues().map(r => String(r[0]));
   const i = ids.indexOf(String(pid)); if (i < 0) return;
   const row = i + 2;
-  Object.keys(vals).forEach(k => { const c = H.indexOf(k); if (c >= 0 && vals[k] !== undefined) sh.getRange(row, c + 1).setValue(vals[k]); });
-  sh.getRange(row, H.indexOf('last_seen') + 1).setValue(new Date());
+  const w = {}; Object.keys(vals).forEach(k => { const c = H.indexOf(k); if (c >= 0 && vals[k] !== undefined) w[c] = vals[k]; });
+  w[H.indexOf('last_seen')] = new Date();
+  const cols = Object.keys(w).map(Number).sort((a, b) => a - b), a0 = cols[0], z0 = cols[cols.length - 1];
+  if (z0 - a0 + 1 === cols.length) sh.getRange(row, a0 + 1, 1, cols.length).setValues([cols.map(c => w[c])]);   // last_stage·last_screen·last_seen은 붙어 있어 한 번에
+  else cols.forEach(c => sh.getRange(row, c + 1).setValue(w[c]));
 }
 function touch_(pid, vals) {
   const sh = sheet_('assign'); const H = HEAD.assign;
@@ -293,7 +290,9 @@ function touch_(pid, vals) {
   const i = ids.indexOf(String(pid)); if (i < 0) return;
   const row = i + 2;
   const cur = sh.getRange(row, 1, 1, H.length).getValues()[0];
+  const st = H.indexOf('status'), done = cur[H.indexOf('completed')] === true || cur[H.indexOf('completed')] === 'TRUE';
   Object.keys(vals).forEach(k => { const c = H.indexOf(k); if (c >= 0 && vals[k] !== undefined) cur[c] = vals[k]; });
+  if (done) cur[st] = '완료';   // 완료자는 늦게 온 설문·복구 전송이 와도 완료 그대로
   cur[H.indexOf('last_seen')] = new Date();
   sh.getRange(row, 1, 1, H.length).setValues([cur]);
 }
@@ -313,6 +312,12 @@ function refreshStatus_() {
   const st = rows.map(r => [statusOf_(r, H, nowMs)]);
   sh.getRange(2, c, n, 1).setValues(st).setBackgrounds(st.map(s => [STATUS_COLOR[s[0]] || null]));
 }
+function refreshStatusSoon_() {
+  const c = CacheService.getScriptCache();
+  if (c.get('status_at')) return;
+  c.put('status_at', '1', 60);
+  refreshStatus_();
+}
 function refreshStatus() { const lock = LockService.getScriptLock(); lock.waitLock(20000); try { refreshStatus_(); } finally { lock.releaseLock(); } }
 // pages·events 탭을 처음부터 읽어 모든 참여자의 마지막 위치를 다시 채움 (예전 기록에도 상태를 붙일 때)
 function rebuildStatus() {
@@ -327,12 +332,12 @@ function rebuildStatus() {
       const o = info[pid] = info[pid] || {}; o.last_page = page; o.page_at = at; if (!o.seen || at > o.seen) o.seen = at;
     });
     const ev = sheet_('events'); const en = ev.getLastRow() - 1;
-    if (en > 0) ev.getRange(2, 1, en, 9).getValues().forEach(([at, pid, , t, , type, stage, screen, data]) => {
+    if (en > 0) ev.getRange(2, 1, en, 9).getValues().forEach(([at, pid, , , , , stage, screen, js]) => {
       const o = info[pid] = info[pid] || {};
       if (!o.ev_at || at >= o.ev_at) {
         o.ev_at = at; o.last_stage = stage;
         let scr = screen;
-        if (/^survey_/.test(type)) { try { const pgName = JSON.parse(data || '{}').page; if (pgName) scr = 'survey:' + pgName; } catch (_) {} }
+        try { const arr = JSON.parse(js || '[]'), z = arr[arr.length - 1]; if (z && /^survey_/.test(z.type) && z.page) scr = 'survey:' + z.page; } catch (_) {}
         o.last_screen = scr;
       }
       if (!o.seen || at > o.seen) o.seen = at;
@@ -361,19 +366,34 @@ function onOpen() {
     .addItem('상태 다시 계산 (전체 · 예전 기록 포함)', 'rebuildStatus')
     .addItem('상태 자동 새로고침 켜기 (10분마다)', 'installStatusTrigger')
     .addSeparator()
-    .addItem('events 참여자별로 정리 (접기)', 'organizeEvents')
-    .addItem('events 모두 펼치기', 'expandEvents')
+    .addItem('행동 기록 펼치기 (events → events_flat, 한 행동 한 줄 · 참여자별 접기)', 'flattenEvents')
+    .addItem('events_flat 접힌 줄 모두 열기', 'expandEvents')
     .addToUi();
 }
-// 참여자 번호 → 시간 순으로 정렬하고, 참여자마다 첫 줄만 보이게 나머지를 접어요.
-// 수집 중에 실행해도 되지만, 그 뒤에 들어온 기록은 맨 아래에 쌓이니 필요할 때 다시 실행하세요.
-function organizeEvents() {
-  const lock = LockService.getScriptLock(); lock.waitLock(20000);
-  try {
-    const sh = sheet_('events');
-    const n = sh.getLastRow() - 1; if (n < 2) return;
-    removeGroups_(sh);
-    sh.getRange(2, 1, n, sh.getLastColumn()).sort([{ column: 2, ascending: true }, { column: 4, ascending: true }]);
+// events(묶음 한 줄)를 펼쳐 events_flat 탭에 한 행동 = 한 줄로 다시 씀 (참여자 번호 → 시간 순, 중복 전송은 한 번만)
+// 수집 중에 실행해도 돼요. 실행할 때마다 events_flat을 처음부터 다시 만들어요.
+function flattenEvents() {
+  const src = sheet_('events'), n0 = src.getLastRow() - 1;
+  const out = [], seen = {};
+  if (n0 > 0) src.getRange(2, 1, n0, 9).getValues().forEach(([at, pid, cond, , , , , , js]) => {
+    let arr = []; try { arr = JSON.parse(js || '[]'); } catch (_) {}
+    arr.forEach(ev => {
+      const key = pid + '|' + ev.t + '|' + ev.type + '|' + ev.ts; if (seen[key]) return; seen[key] = 1;
+      const rest = {}; Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
+      out.push([at, pid, cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)]);
+    });
+  });
+  out.sort((a, b) => String(a[1]) < String(b[1]) ? -1 : String(a[1]) > String(b[1]) ? 1 : a[3] - b[3]);
+  const sh = sheet_('events_flat');
+  removeGroups_(sh);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, 9).clearContent();
+  for (let i = 0; i < out.length; i += 5000) { const part = out.slice(i, i + 5000); sh.getRange(i + 2, 1, part.length, 9).setValues(part); }
+  organizeEvents_(sh, out.length);
+  SpreadsheetApp.getActive().toast('행동 ' + out.length + '개를 events_flat에 펼쳤어요.', '연구 도구', 5);
+}
+// 참여자마다 첫 줄만 보이게 나머지를 접어요.
+function organizeEvents_(sh, n) {
+  if (n >= 2) {
     const pids = sh.getRange(2, 2, n, 1).getValues().map(r => String(r[0]));
     sh.setRowGroupControlPosition(SpreadsheetApp.GroupControlTogglePosition.BEFORE);
     let start = 0;
@@ -388,9 +408,9 @@ function organizeEvents() {
         start = i;
       }
     }
-  } finally { lock.releaseLock(); }
+  }
 }
-function expandEvents() { const sh = sheet_('events'); sh.expandAllRowGroups(); }
+function expandEvents() { const sh = sheet_('events_flat'); sh.expandAllRowGroups(); }
 function removeGroups_(sh) {
   const n = sh.getMaxRows();
   try { sh.expandAllRowGroups(); } catch (_) {}

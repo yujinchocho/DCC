@@ -913,16 +913,23 @@ const LOG = {
     this.events.push(e); this.queue.push(e); renderLog();
   },
   payload() { return { sid: this.sid, cond: this.cond, device: this.device, metrics: M, events: this.events }; },
+  sending: false,
   flush(beacon) {
-    if (!CFG.LOG_ENDPOINT || !this.queue.length || !this.sid) return;
+    if (!CFG.LOG_ENDPOINT || !this.queue.length || !this.sid || (this.sending && !beacon)) return;
     const evs = this.queue.splice(0);
     const payload = { kind: 'events', pid: this.sid, cond: this.cond, events: evs };
     if (beacon && navigator.sendBeacon) {
       try { navigator.sendBeacon(CFG.LOG_ENDPOINT, new Blob([JSON.stringify({ study: STUDY.study, ...payload })], { type: 'text/plain' })); } catch (_) {}
-    } else post(payload).catch(() => { this.queue.unshift(...evs); }); // 실패하면 다음 전송 때 다시 보냄
+      return;
+    }
+    // 서버가 받았다고({ok:true}) 답해야 끝 — 실패·바쁨·시간 초과면 다음 전송 때 다시 보냄 (시트에서 중복은 펼칠 때 한 번만 남김)
+    this.sending = true;
+    post(payload, true, 30000).then(r => { if (!r || !r.ok) throw new Error('not saved'); })
+      .catch(() => { this.queue.unshift(...evs); })
+      .finally(() => { this.sending = false; });
   }
 };
-setInterval(() => LOG.flush(false), 20000);
+setInterval(() => LOG.flush(false), 30000);   // 30초마다 모아서 (사람이 몰려도 요청 수를 줄임)
 addEventListener('pagehide', () => LOG.flush(true));
 
 // Apps Script 웹 앱으로 보내기 (text/plain → 사전 요청 없이 전송)
@@ -2054,9 +2061,10 @@ async function assign() {
   const list = (STUDY.conds || Object.keys(CONDS)).filter(c => CONDS[c]);
   const saved = TEST ? null : store.get(SKEY + '_cond');
   if (CFG.LOG_ENDPOINT) {
-    for (let k = 0; k < 2; k++) {   // 15초 기다리고, 실패하면 한 번 더 (같은 기기 키라 서버가 이미 배정했다면 같은 번호를 돌려줌)
+    for (let k = 0; k < 3; k++) {   // 30초씩 최대 세 번 (같은 기기 키라 서버가 이미 배정했다면 같은 번호를 돌려줌). 사이에 1~3초 쉬어 몰림을 흩뜨림
+      if (k) await new Promise(res => setTimeout(res, 1000 + Math.random() * 2000));
       try {
-        const r = await post({ kind: 'assign', key: KEY, test: TEST, prefix: STUDY.prefix || '' }, true, 15000);
+        const r = await post({ kind: 'assign', key: KEY, test: TEST, prefix: STUDY.prefix || '' }, true, 30000);
         if (r && CONDS[r.cond] && r.pid) { PID = r.pid; store.set(SKEY + '_cond', r.cond); return [r.cond, k ? 'server-retry' : (r.again ? 'server-again' : 'server')]; }
       } catch (_) {}
       const b = $('csGo'); if (b && k === 0) b.textContent = '연결 중이에요. 잠시만 기다려 주세요…';
