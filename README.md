@@ -21,6 +21,17 @@
 - 11/9 09:5x~ 번호 요청 15초 대기 + 1회 재시도 (LOCAL 줄이기) · Code.gs: LOCAL 완료자도 조건 균형에 포함, LOCAL은 첫 설문 때 assign에 줄 생성
 - 11/9 12:0x~ 설문 제출·완료·연락처는 서버가 저장을 확인할 때까지 다시 보냄(기기에 대기열 저장) · 이미 완료 화면을 열면 서버에 확인 안 된 응답을 기기에서 복구 전송(pages에 page=recover) · Code.gs: 순서 못 받으면 errors에 busy 기록, 행동 기록 때는 상태 재계산 생략, 복구 전송 때 처음 완료 시각 유지
 
+## 본실험 v2.0 (Main_v2.html) — 재설문
+- 참여자 링크(배포 후): https://yujinchocho.github.io/DCC/Main_v2.html
+- 테스트: 링크 끝에 `#test` (TEST… 번호) · 빠르게 `#test#fast` · 기록 지우기 `#reset` · 화면 확인 `#review-fin-b-tab`
+- 응답 저장: **본실험 v2.0 전용 새 구글 시트** — 시트의 Apps Script에 `Code_Main_v2.gs`를 붙여넣어 배포하고, 그 주소(…/exec)를 Main_v2.html의 `STUDY.endpoint`에 넣어야 해요. 비어 있으면 저장되지 않아요.
+- 참여자 번호: RS001… (PL·MS와 따로 세고, 조건 배정도 RS끼리만 맞춰요)
+- assign 탭 열 순서: pid · cond · **status** · started_at · completed · completed_at · code · device_key · last_page · last_stage · last_screen · last_seen (status만 앞으로). 코드가 열 이름으로 위치를 찾으므로 바꾸려면 `HEAD.assign`만 고치면 돼요 — 시트에서 손으로 열을 옮기지는 마세요.
+- 파일럿 v2.0(Pilot.html)과 다른 점은 두 가지뿐
+  1. 고지 2·3장 강조 문구: 블루 → 빨강(#D9483F) — '의' 등 조사는 검정 그대로
+  2. 고지 [계속하기] 3초 잠금 없음(CFG.NOTICE_PAGE_LOCK = 0) → 장마다 3초 전에 누르면 말풍선 '잠시 후 넘어갈 수 있어요'(CFG.NOTICE_NUDGE = [3, 3, 3]). 말풍선은 장마다 한 번, 다시 누르면 넘어감. 3초 전 탭 수는 notice_early_taps, 말풍선은 행동 기록 notice_nudge
+- 나머지(문항·캡처·› 안내·잠금 시간·보상 문구)는 파일럿과 같음 — ⚠ 동의 화면 보상 문구는 아직 파일럿 문구
+
 ## 파일럿 v2.0 (Pilot.html) — 재설문 전 조작점검 확인 (목표 24명, 인원 마감 없음)
 - 참여자 링크(배포 후): https://yujinchocho.github.io/DCC/Pilot.html
 - 테스트: 링크 끝에 `#test` (TEST… 번호) · 빠르게 `#test#fast` · 기록 지우기 `#reset` · 화면 확인 `#review-fin-b-tab` 처럼 조건·화면 지정
