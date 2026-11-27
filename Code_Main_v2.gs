@@ -22,7 +22,7 @@
  *  - errors    : 저장 중 오류가 나면 내용이 남아요 (정상이면 생기지 않아요)
  * 머리글(1행) 칸에 마우스를 올리면 한글 설명이 보여요.
  *
- * 진행 상태 (assign의 status 열) — 설문 제출·완료 때 본인 줄은 바로 바뀌고, 전체 재계산(이탈 판정·색)은 1분에 한 번까지만 해요 (몰릴 때 서버 부담↓)
+ * 진행 상태 (assign의 status 열) — 설문 제출·완료 때 본인 줄은 바로 바뀌고, 이탈 판정·색은 메뉴 [상태 새로고침]·자동 새로고침 때 계산해요
  *  - 미시작 : 동의·배정은 했지만 첫 설문 페이지를 아직 내지 않음 (자극을 보기 전)
  *  - 진행 중: 첫 설문은 냈고, 마지막 기록이 IDLE_MIN분 안에 있음
  *  - 이탈   : 첫 설문은 냈지만, 마지막 기록 뒤 IDLE_MIN분 넘게 아무 기록이 없음
@@ -31,10 +31,12 @@
  *  예전 기록의 마지막 위치를 채우려면 [연구 도구 → 상태 다시 계산 (전체)]를 누르면 돼요.
  *
  * 한꺼번에 몰릴 때 (업체 배포)
- *  - 구글 웹 앱은 '실행 사용자: 나' 계정 하나로 동시에 30개까지만 실행돼요. 그래서 요청 하나하나를 짧게 만들었어요.
- *    · 행동 기록: 묶음 하나를 한 줄로 저장(칸마다 따로 쓰지 않음), 순서 대기 없이 바로 저장
- *    · 설문·완료: 순서 대기(최대 25초) 후 저장, 상태 전체 재계산은 1분에 한 번까지만
- *    · 조건 배정: 순서 대기 최대 7초 → 못 받으면 '바쁨'으로 바로 답하고 페이지가 다시 요청 (한 번에 10초, 최대 세 번)
+ *  - 구글 웹 앱은 '실행 사용자: 나' 계정 하나로 동시에 30개까지만 실행돼요. 그래서 요청 하나하나를 짧게, 서로 기다리지 않게 만들었어요.
+ *    · 설문·완료·행동 기록: 순서 대기 없이 저장 (pages·events는 줄 추가, responses·assign은 자기 줄의 해당 칸만 고침)
+ *    · 조건 배정: 번호·인원 계산만 순서대로(시트 대신 스크립트 속성 메모를 읽어 수십 ms) → 줄 추가는 순서 밖에서
+ *    · 순서가 꼭 필요한 건 새 줄·새 열 만들기뿐 (LOCAL 참여자, 첫 응답의 문항 열) — 못 받으면 '바쁨' → 페이지가 다시 보냄
+ *  - 진행 상태(이탈 판정·색)는 요청 때 다시 계산하지 않아요. 메뉴 [상태 새로고침] 또는 [상태 자동 새로고침 켜기]를 쓰세요.
+ *  - 시트에서 assign 줄을 지웠다면(예: TEST 줄 정리) 메뉴 [배정 기록 다시 읽기]를 한 번 눌러 주세요.
  *  - 저장이 실패하거나 '바쁨'이면 페이지가 3·10·30·60초 간격으로 다시 보내요(설문·완료는 서버가 받았다고 답할 때까지).
  *  - 실패 기록은 errors 탭에 남아요. 'busy'가 가끔 보이는 건 괜찮아요(다시 보내서 저장됨).
  */
@@ -96,35 +98,33 @@ const NOTE = {
 };
 
 function doPost(e) {
-  // 행동 기록(events)은 순서 잠금 없이 바로 저장: 동시 참여자가 많을 때 설문·완료 저장이 밀리지 않게 함
-  let pre = null; try { pre = JSON.parse(e.postData.contents); } catch (_) {}
-  if (pre && pre.kind === 'events') {
-    try { saveEventsFree_(pre); return json_({ ok: true }); }
-    catch (err) { logError_(err, e); return json_({ ok: false, error: String(err) }); }
-  }
-  const lock = LockService.getScriptLock();
-  const wait = pre && pre.kind === 'assign' ? 7000 : 25000;   // 배정은 참여자가 화면에서 기다리므로 짧게 (못 받으면 바로 '바쁨' → 페이지가 곧 다시 요청)
-  if (!lock.tryLock(wait)) {   // 동시에 요청이 몰려 순서를 못 받으면: 기록을 남기고 '바쁨'으로 답함 (페이지가 잠시 뒤 다시 보냄)
-    logError_(new Error('busy: lock timeout'), e);
-    return json_({ ok: false, busy: true });
-  }
+  let d = null;
+  try { d = JSON.parse(e.postData.contents); } catch (err) { logError_(err, e); return json_({ ok: false, error: 'bad request' }); }
   try {
-    const d = JSON.parse(e.postData.contents);
     let out = { ok: true };
     if (d.kind === 'assign') out = assign_(d);
     else if (d.kind === 'page') savePage_(d);
-    else if (d.kind === 'events') saveEvents_(d);
+    else if (d.kind === 'events') saveEventsFree_(d);
     else if (d.kind === 'complete') complete_(d);
-    if (d.kind === 'page' || d.kind === 'complete') {   // 진행 상태 전체 재계산: 설문 제출·완료 때, 1분에 한 번까지만 (몰릴 때 순서 대기를 짧게). 본인 줄 상태는 바로 바뀜
-      try { refreshStatusSoon_(); } catch (err2) { logError_(err2, e); }
-    }
     return json_(out);
   } catch (err) {
-    logError_(err, e);
-    return json_({ ok: false, error: String(err) });
-  } finally {
-    lock.releaseLock();
+    const busy = /busy/.test(String(err));
+    if (!busy) logError_(err, e);   // '바쁨'은 페이지가 곧 다시 보내므로 errors 탭에 쌓지 않음
+    return json_({ ok: false, busy: busy, error: String(err) });
   }
+}
+// 꼭 한 명씩 해야 하는 아주 짧은 구간만 순서대로 (번호 매기기 · 새 줄 만들기). 못 받으면 '바쁨' → 페이지가 다시 보냄
+function withLock_(ms, fn) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(ms)) throw new Error('busy: lock timeout');
+  try { return fn(); } finally { lock.releaseLock(); }
+}
+// 2행부터 pid(1열)로 줄 번호 찾기 (없으면 -1). 같은 번호가 여럿이면 맨 아래 줄
+function findRow_(sh, pid) {
+  const n = sh.getLastRow() - 1; if (n < 1 || !pid) return -1;
+  const ids = sh.getRange(2, 1, n, 1).getValues();
+  for (let i = n - 1; i >= 0; i--) if (String(ids[i][0]) === String(pid)) return i + 2;
+  return -1;
 }
 
 function doGet() { return json_({ ok: true, msg: 'DCC endpoint is running' }); }
@@ -132,85 +132,160 @@ function doGet() { return json_({ ok: true, msg: 'DCC endpoint is running' }); }
 /* ---------- 조건 배정 + 참여자 번호 ---------- */
 // 조건: ① 완료자가 가장 적은 조건 → ② 그중 진행 중인 사람이 가장 적은 조건 → ③ 그래도 같으면 무작위
 // 번호: RS001, RS002 … 순서대로 (테스트는 TEST001 …). 같은 기기로 다시 들어오면 같은 번호·조건
-// assign 열 위치는 HEAD.assign에서 이름으로 찾음 (숫자로 고정하지 않음)
+// 몰릴 때를 위해: 번호·인원 계산은 시트를 읽지 않고 스크립트 속성(작은 메모)으로 해서 순서 구간을 아주 짧게 함.
+//   처음 한 번만 assign 탭을 읽어 메모를 만들고, 시트에서 줄을 지웠다면 메뉴 [배정 기록 다시 읽기]로 다시 만들어요.
 const AC_ = k => HEAD.assign.indexOf(k);
 function aRow_(o) { return HEAD.assign.map(k => o[k] === undefined ? '' : o[k]); }
-function assign_(d) {
-  const sh = sheet_('assign');
-  const H = HEAD.assign;
-  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, H.length).getValues() : [];
-  if (d.key) {
-    const mine = rows.find(r => r[AC_('device_key')] === d.key);
-    if (mine) return { ok: true, pid: mine[0], cond: mine[1], again: true };
-  }
-  const fam = /^[A-Z]{1,4}$/.test(String(d.prefix || '')) ? d.prefix : ID_PREFIX;   // 이 버전의 번호 앞 글자
-  const prefix = d.test ? 'TEST' : fam;
-  let maxN = 0;
-  rows.forEach(r => {
-    const m = String(r[0]).match(new RegExp('^' + prefix + '(\\d+)$'));
-    if (m) maxN = Math.max(maxN, Number(m[1]));
-  });
-  const pid = prefix + String(maxN + 1).padStart(ID_DIGITS, '0');
-
-  const now = Date.now(), done = {}, live = {};
-  CONDS.forEach(c => { done[c] = 0; live[c] = 0; });
-  rows.forEach(r => {
-    const id = String(r[0]);
-    if (!(r[1] in done) || /^TEST/.test(id)) return;   // 테스트 기록은 인원 계산에서 뺌
-    const isFam = new RegExp('^' + fam + '\\d+$').test(id);   // 같은 앞 글자(같은 버전)
-    const isLocal = /^LOCAL-/.test(id);                        // 서버 배정에 실패해 브라우저가 조건을 정한 참여자도 셈
-    if (!isFam && !isLocal) return;
+const ST_KEY = 'assign_state_v1';
+function loadState_(props) {
+  const raw = props.getProperty(ST_KEY);
+  if (raw) return JSON.parse(raw);
+  const st = { n: {}, done: {}, live: [] };
+  CONDS.forEach(c => { st.done[c] = 0; });
+  const sh = sheet_('assign'); const H = HEAD.assign; const n = sh.getLastRow() - 1;
+  if (n > 0) sh.getRange(2, 1, n, H.length).getValues().forEach(r => {
+    const id = String(r[0]); const m = id.match(/^([A-Z]+)(\d+)$/);
+    if (m) st.n[m[1]] = Math.max(st.n[m[1]] || 0, Number(m[2]));
+    const key = r[AC_('device_key')]; if (key) props.setProperty('k_' + key, id + '|' + r[1]);
+    if (/^TEST/.test(id) || !(r[1] in st.done)) return;   // 테스트 기록은 인원 계산에서 뺌
     const c = r[AC_('completed')], s0 = r[AC_('started_at')];
-    if (c === true || c === 'TRUE') done[r[1]]++;
-    else if (s0 && now - new Date(s0).getTime() < IN_PROGRESS_MIN * 60000) live[r[1]]++;
+    if (c === true || c === 'TRUE') st.done[r[1]]++;
+    else if (s0) st.live.push([r[1], new Date(s0).getTime(), id]);
   });
-  const minDone = Math.min.apply(null, CONDS.map(c => done[c]));
-  let pool = CONDS.filter(c => done[c] === minDone);
-  const minLive = Math.min.apply(null, pool.map(c => live[c]));
-  pool = pool.filter(c => live[c] === minLive);
-  const cond = pool[Math.floor(Math.random() * pool.length)];
+  return st;
+}
+function assign_(d) {
+  const props = PropertiesService.getScriptProperties();
+  const isTest = !!d.test;
+  const fam = /^[A-Z]{1,4}$/.test(String(d.prefix || '')) ? d.prefix : ID_PREFIX;   // 이 버전의 번호 앞 글자
+  const prefix = isTest ? 'TEST' : fam;
+  const again = () => { const had = d.key && props.getProperty('k_' + d.key); if (!had) return null; const [pid, cond] = had.split('|'); return { pid: pid, cond: cond, again: true }; };
+  const a0 = again(); if (a0) return Object.assign({ ok: true }, a0);
   const at = new Date();
-  sh.appendRow(aRow_({ pid: pid, cond: cond, status: '미시작', started_at: at, completed: false, device_key: d.key || '', last_seen: at }));
-  return { ok: true, pid: pid, cond: cond, done: done, live: live };
+  const r = withLock_(7000, () => {
+    const a1 = again(); if (a1) return a1;
+    const st = loadState_(props);
+    const nowMs = at.getTime();
+    st.live = st.live.filter(x => nowMs - x[1] < IN_PROGRESS_MIN * 60000);   // 시작 후 IN_PROGRESS_MIN분 안의 미완료자만 '진행 중'
+    const num = (st.n[prefix] || 0) + 1; st.n[prefix] = num;
+    const pid = prefix + String(num).padStart(ID_DIGITS, '0');
+    const live = {}; CONDS.forEach(c => { live[c] = 0; }); st.live.forEach(x => { if (x[0] in live) live[x[0]]++; });
+    const minDone = Math.min.apply(null, CONDS.map(c => st.done[c] || 0));
+    let pool = CONDS.filter(c => (st.done[c] || 0) === minDone);
+    const minLive = Math.min.apply(null, pool.map(c => live[c]));
+    pool = pool.filter(c => live[c] === minLive);
+    const cond = pool[Math.floor(Math.random() * pool.length)];
+    if (!isTest) st.live.push([cond, nowMs, pid]);
+    props.setProperty(ST_KEY, JSON.stringify(st));
+    if (d.key) props.setProperty('k_' + d.key, pid + '|' + cond);
+    return { pid: pid, cond: cond, done: st.done, live: live };
+  });
+  if (r.again) return Object.assign({ ok: true }, r);
+  // 줄 추가는 순서 구간 밖에서 (appendRow는 겹쳐 써지지 않음)
+  sheet_('assign').appendRow(aRow_({ pid: r.pid, cond: r.cond, status: '미시작', started_at: at, completed: false, device_key: d.key || '', last_seen: at }));
+  respSheet_().appendRow([r.pid, r.cond, at]);   // responses 줄을 미리 만들어 둠 → 설문 저장은 순서 대기 없이 자기 줄만 고침
+  return { ok: true, pid: r.pid, cond: r.cond, done: r.done, live: r.live };
+}
+// 완료자 수 +1 (조건 배정용 메모)
+function markDone_(pid, cond) {
+  try {
+    withLock_(10000, () => {
+      const props = PropertiesService.getScriptProperties(); const st = loadState_(props);
+      st.done[cond] = (st.done[cond] || 0) + 1; st.live = st.live.filter(x => x[2] !== pid);
+      props.setProperty(ST_KEY, JSON.stringify(st));
+    });
+  } catch (err) { logError_(err); }
+}
+// 테스트 기록 지우기: pid가 TEST로 시작하거나 LOCAL-LOADT(몰림 시험)인 줄을 모든 탭에서 지우고 배정 메모를 다시 만듦
+function clearTestRows() {
+  const isTest = id => /^TEST/.test(String(id)) || /^LOCAL-LOADT/.test(String(id));
+  const ss = SpreadsheetApp.getActiveSpreadsheet(); const out = [];
+  withLock_(60000, () => {
+    ['assign', 'pages', 'responses', 'summary', 'events', 'events_flat'].forEach(name => {
+      const sh = ss.getSheetByName(name); if (!sh) return;
+      const n = sh.getLastRow() - 1, w = sh.getLastColumn(); if (n < 1) return;
+      const col = name === 'assign' || name === 'responses' || name === 'summary' ? 0 : 1;   // pid 열
+      const rows = sh.getRange(2, 1, n, w).getValues();
+      const keep = rows.filter(r => !isTest(r[col]));
+      if (keep.length === rows.length) return;
+      sh.getRange(2, 1, n, w).clearContent();
+      if (keep.length) sh.getRange(2, 1, keep.length, w).setValues(keep);
+      out.push(name + ' ' + (rows.length - keep.length) + '줄');
+    });
+  });
+  resetAssignState(); try { refreshStatus(); } catch (_) {}
+  try { SpreadsheetApp.getActive().toast(out.length ? '지운 줄: ' + out.join(', ') : '지울 테스트 기록이 없어요.', '연구 도구', 8); } catch (_) {}
+}
+// 시트에서 줄을 지운 뒤(예: TEST 줄 정리) 배정 메모를 assign 탭 기준으로 다시 만듦
+function resetAssignState() {
+  withLock_(30000, () => {
+    const props = PropertiesService.getScriptProperties();
+    Object.keys(props.getProperties()).forEach(k => { if (k === ST_KEY || /^k_/.test(k)) props.deleteProperty(k); });
+    props.setProperty(ST_KEY, JSON.stringify(loadState_(props)));
+  });
+  try { SpreadsheetApp.getActive().toast('assign 탭 기준으로 배정 기록을 다시 읽었어요.', '연구 도구', 5); } catch (_) {}
 }
 
 /* ---------- 설문 페이지 ---------- */
+// 순서 대기 없이 저장: pages는 appendRow, responses는 배정 때 만든 자기 줄의 그 페이지 칸만 고침
 function savePage_(d) {
   ensureLocalRow_(d);
   sheet_('pages').appendRow([new Date(), d.pid, d.cond, d.page, d.page_ms, JSON.stringify(d.answers)]);
   saveResponses_(d);
-  touch_(d.pid, { last_page: d.page, last_screen: 'survey:' + d.page, status: '진행 중' });
+  touchCells_(d.pid, { last_page: d.page, last_screen: 'survey:' + d.page }, true);
 }
 
 // responses: 참여자당 한 줄, 문항마다 한 열. 문항 칸에는 문항 문구가 설명으로 붙어요.
-function saveResponses_(d) {
+function respSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName('responses') || ss.insertSheet('responses');
-  const base = ['pid', 'cond', 'updated_at'];
-  const lastCol = sh.getLastColumn();
-  let header = lastCol > 0 ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String) : [];
-  if (header[0] !== 'pid') {
-    header = base.concat(header.filter(h => h && base.indexOf(h) < 0));
-    sh.getRange(1, 1, 1, header.length).setValues([header]);
-    sh.getRange(1, 1, 1, 3).setNotes([[NOTE.pid, NOTE.cond, NOTE.updated_at]]);
-    sh.setFrozenRows(1);
+  let sh = ss.getSheetByName('responses');
+  if (sh && sh.getLastRow() > 0) return sh;
+  return withLock_(15000, () => {
+    sh = ss.getSheetByName('responses') || ss.insertSheet('responses');
+    if (sh.getLastRow() === 0) {
+      sh.appendRow(['pid', 'cond', 'updated_at']);
+      sh.getRange(1, 1, 1, 3).setNotes([[NOTE.pid, NOTE.cond, NOTE.updated_at]]);
+      sh.setFrozenRows(1);
+    }
+    return sh;
+  });
+}
+function respHeader_(sh, fresh) {
+  const c = CacheService.getScriptCache();
+  if (!fresh) { const h = c.get('resp_hdr'); if (h) return JSON.parse(h); }
+  const n = sh.getLastColumn(); const h = n ? sh.getRange(1, 1, 1, n).getValues()[0].map(String) : [];
+  c.put('resp_hdr', JSON.stringify(h), 21600);
+  return h;
+}
+function saveResponses_(d) {
+  const keys = Object.keys(d.answers || {}); if (!keys.length) return;
+  const sh = respSheet_();
+  let header = respHeader_(sh);
+  if (keys.some(k => header.indexOf(k) < 0)) {   // 새 문항 열: 한 명만 만들도록 순서대로
+    header = withLock_(15000, () => {
+      let h = respHeader_(sh, true);
+      const add = keys.filter(k => h.indexOf(k) < 0);
+      if (add.length) {
+        sh.getRange(1, h.length + 1, 1, add.length).setValues([add]);
+        const labels = d.labels || {};
+        sh.getRange(1, h.length + 1, 1, add.length).setNotes([add.map(k => labels[k] || '')]);
+        h = h.concat(add);
+        CacheService.getScriptCache().put('resp_hdr', JSON.stringify(h), 21600);
+      }
+      return h;
+    });
   }
-  const keys = Object.keys(d.answers || {});
-  const add = keys.filter(k => header.indexOf(k) < 0);
-  if (add.length) {
-    sh.getRange(1, header.length + 1, 1, add.length).setValues([add]);
-    const labels = d.labels || {};
-    sh.getRange(1, header.length + 1, 1, add.length).setNotes([add.map(k => labels[k] || '')]);
-    header = header.concat(add);
+  let row = findRow_(sh, d.pid);
+  if (row < 0) {   // 배정 줄이 없는 참여자(LOCAL 등): 한 명만 줄을 만들도록
+    row = withLock_(15000, () => { let r0 = findRow_(sh, d.pid); if (r0 < 0) { sh.appendRow([d.pid, d.cond, new Date()]); r0 = findRow_(sh, d.pid); } return r0; });
   }
-  const lastRow = sh.getLastRow();
-  const ids = lastRow > 1 ? sh.getRange(2, 1, lastRow - 1, 1).getValues().map(r => String(r[0])) : [];
-  let row = ids.indexOf(String(d.pid)) + 2;
-  if (row < 2) row = lastRow + 1;
-  const cur = sh.getRange(row, 1, 1, header.length).getValues()[0];
-  cur[0] = d.pid; cur[1] = d.cond; cur[2] = new Date();
-  keys.forEach(k => { cur[header.indexOf(k)] = d.answers[k]; });
-  sh.getRange(row, 1, 1, header.length).setValues([cur]);
+  const cols = keys.map(k => header.indexOf(k)).filter(c => c >= 0);
+  const a = Math.min.apply(null, cols), z = Math.max.apply(null, cols);
+  const rng = sh.getRange(row, a + 1, 1, z - a + 1);   // 이 페이지 문항이 있는 칸만 (다른 페이지 칸은 건드리지 않음)
+  const cur = rng.getValues()[0];
+  keys.forEach(k => { const c = header.indexOf(k); if (c >= 0) cur[c - a] = d.answers[k]; });
+  rng.setValues([cur]);
+  sh.getRange(row, 3).setValue(new Date());
 }
 
 /* ---------- 행동 기록 ---------- */
@@ -219,16 +294,24 @@ function saveEvents_(d) { saveEventsFree_(d); }
 /* ---------- 완료: assign 갱신 + summary 한 줄 ---------- */
 function complete_(d) {
   const sh = sheet_('assign');
-  const ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
-  const i = ids.indexOf(String(d.pid));
-  if (i >= 0) {
-    const cc = AC_('completed') + 1;   // completed · completed_at · code는 붙어 있음
-    const was = sh.getRange(i + 2, cc, 1, 2).getValues()[0];   // 이미 완료로 기록돼 있으면 처음 완료 시각을 그대로 둠 (복구 전송 때문)
-    const already = was[0] === true || was[0] === 'TRUE';
-    sh.getRange(i + 2, cc, 1, 3).setValues([[true, already && was[1] ? was[1] : new Date(), d.code || '']]);
+  let row = findRow_(sh, d.pid), first = false;
+  if (row < 0) {
+    row = withLock_(15000, () => {
+      if (findRow_(sh, d.pid) > 0) return findRow_(sh, d.pid);
+      sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '완료', completed: true, completed_at: new Date(), code: d.code || '', last_seen: new Date() }));
+      first = true; return -2;
+    });
   }
-  else sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '완료', completed: true, completed_at: new Date(), code: d.code || '', last_seen: new Date() }));
-  touch_(d.pid, { last_stage: 'end', last_screen: 'end', status: '완료' });
+  if (row > 0) {
+    const cc = AC_('completed') + 1;   // completed · completed_at · code는 붙어 있음
+    const was = sh.getRange(row, cc, 1, 2).getValues()[0];   // 이미 완료로 기록돼 있으면 처음 완료 시각을 그대로 둠 (복구 전송 때문)
+    const already = was[0] === true || was[0] === 'TRUE';
+    first = !already;
+    sh.getRange(row, cc, 1, 3).setValues([[true, already && was[1] ? was[1] : new Date(), d.code || '']]);
+    sh.getRange(row, AC_('status') + 1).setValue('완료');
+  }
+  touchCells_(d.pid, { last_stage: 'end', last_screen: 'end' });
+  if (first && !/^TEST/.test(String(d.pid)) && CONDS.indexOf(d.cond) >= 0) markDone_(d.pid, d.cond);
 
   const m = d.metrics || {}, dev = d.device || {};
   const S = sheet_('summary');
@@ -242,19 +325,21 @@ function complete_(d) {
     if (h === 'screen_h') return dev.vh || '';
     return m[h] === undefined || m[h] === null ? '' : m[h];
   });
-  const sids = S.getLastRow() > 1 ? S.getRange(2, 1, S.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
-  const j = sids.indexOf(String(d.pid));
-  S.getRange(j >= 0 ? j + 2 : S.getLastRow() + 1, 1, 1, vals.length).setValues([vals]);
+  const j = findRow_(S, d.pid);
+  if (j > 0) S.getRange(j, 1, 1, vals.length).setValues([vals]);
+  else withLock_(15000, () => { const k = findRow_(S, d.pid); if (k > 0) S.getRange(k, 1, 1, vals.length).setValues([vals]); else S.appendRow(vals); });
 }
 
 // 서버 배정에 실패한 LOCAL 참여자: 첫 기록이 들어올 때 assign에 줄을 만들어 둠 (started_at = 첫 설문 제출 시각)
 function ensureLocalRow_(d) {
   if (!/^LOCAL-/.test(String(d.pid || '')) || CONDS.indexOf(d.cond) < 0) return;
   const sh = sheet_('assign');
-  const ids = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(r => String(r[0])) : [];
-  if (ids.indexOf(String(d.pid)) >= 0) return;
-  const at = new Date();
-  sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '미시작', started_at: at, completed: false, last_seen: at }));
+  if (findRow_(sh, d.pid) > 0) return;
+  withLock_(15000, () => {
+    if (findRow_(sh, d.pid) > 0) return;
+    const at = new Date();
+    sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '미시작', started_at: at, completed: false, last_seen: at }));
+  });
 }
 
 /* ---------- 진행 상태 (assign) ---------- */
@@ -273,17 +358,20 @@ function saveEventsFree_(d) {
   touchCells_(d.pid, { last_stage: last.stage || '', last_screen: scr });
 }
 // 행 전체를 다시 쓰지 않고 필요한 칸만 씀 (잠금 없이 써도 완료 표시 등을 덮어쓰지 않게)
-function touchCells_(pid, vals) {
+function touchCells_(pid, vals, prog) {
   const sh = sheet_('assign'); const H = HEAD.assign;
-  const n = sh.getLastRow() - 1; if (n < 1 || !pid) return;
-  const ids = sh.getRange(2, 1, n, 1).getValues().map(r => String(r[0]));
-  const i = ids.indexOf(String(pid)); if (i < 0) return;
-  const row = i + 2;
+  const row = findRow_(sh, pid); if (row < 0) return;
   const w = {}; Object.keys(vals).forEach(k => { const c = H.indexOf(k); if (c >= 0 && vals[k] !== undefined) w[c] = vals[k]; });
   w[H.indexOf('last_seen')] = new Date();
   const cols = Object.keys(w).map(Number).sort((a, b) => a - b), a0 = cols[0], z0 = cols[cols.length - 1];
-  if (z0 - a0 + 1 === cols.length) sh.getRange(row, a0 + 1, 1, cols.length).setValues([cols.map(c => w[c])]);   // last_stage·last_screen·last_seen은 붙어 있어 한 번에
+  if (z0 - a0 + 1 === cols.length) sh.getRange(row, a0 + 1, 1, cols.length).setValues([cols.map(c => w[c])]);   // last_page~last_seen은 붙어 있어 한 번에
   else cols.forEach(c => sh.getRange(row, c + 1).setValue(w[c]));
+  if (prog) {   // 설문을 냈으면 '진행 중' (완료자는 그대로)
+    const st = H.indexOf('status'), cc = H.indexOf('completed');
+    const v = sh.getRange(row, st + 1, 1, cc - st + 1).getValues()[0];
+    const done = v[cc - st] === true || v[cc - st] === 'TRUE';
+    if (!done && v[0] !== '진행 중') sh.getRange(row, st + 1).setValue('진행 중');
+  }
 }
 function touch_(pid, vals) {
   const sh = sheet_('assign'); const H = HEAD.assign;
@@ -367,6 +455,8 @@ function onOpen() {
     .addItem('상태 새로고침', 'refreshStatus')
     .addItem('상태 다시 계산 (전체 · 예전 기록 포함)', 'rebuildStatus')
     .addItem('상태 자동 새로고침 켜기 (10분마다)', 'installStatusTrigger')
+    .addItem('배정 기록 다시 읽기 (시트에서 줄을 지운 뒤)', 'resetAssignState')
+    .addItem('테스트 기록 지우기 (TEST · LOCAL-LOADT 줄)', 'clearTestRows')
     .addSeparator()
     .addItem('행동 기록 펼치기 (events → events_flat, 한 행동 한 줄 · 참여자별 접기)', 'flattenEvents')
     .addItem('events_flat 접힌 줄 모두 열기', 'expandEvents')
@@ -429,18 +519,27 @@ function logError_(err, e) {
 function sheet_(name) {
   const header = HEAD[name];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const cache = CacheService.getScriptCache();
   let sh = ss.getSheetByName(name);
-  if (!sh) sh = ss.insertSheet(name);
+  if (sh && cache.get('hdr_' + name)) return sh;   // 몰릴 때 부담을 줄이려고 머리글 확인은 10분에 한 번
+  if (!sh) {
+    sh = withLock_(15000, () => {
+      let s0 = ss.getSheetByName(name);
+      if (!s0) { s0 = ss.insertSheet(name); s0.appendRow(header); }
+      return s0;
+    });
+  }
   if (sh.getLastRow() === 0) {
     sh.appendRow(header);
   } else {
     const first = sh.getRange(1, 1, 1, header.length).getValues()[0].map(String);
     if (first[0] !== header[0]) { sh.insertRowBefore(1); sh.getRange(1, 1, 1, header.length).setValues([header]); }
     else if (first.join('|') !== header.join('|')) sh.getRange(1, 1, 1, header.length).setValues([header]);
-    else if (sh.getRange(1, 1).getNote()) return sh;   // 머리글·설명이 이미 있으면 그대로
+    else if (sh.getRange(1, 1).getNote()) { cache.put('hdr_' + name, '1', 600); return sh; }   // 머리글·설명이 이미 있으면 그대로
   }
   sh.getRange(1, 1, 1, header.length).setNotes([header.map(h => NOTE[h] || '')]).setFontWeight('bold');
   sh.setFrozenRows(1);
+  cache.put('hdr_' + name, '1', 600);
   return sh;
 }
 function json_(o) {
