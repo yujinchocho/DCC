@@ -16,8 +16,8 @@
  *  - assign    : 참여자 번호, 배정 조건, 시작·완료 시각, 진행 상태(미시작/진행 중/이탈/완료)와 마지막 위치
  *  - summary   : 끝까지 마친 참여자의 행동 지표 요약 (참여자당 한 줄)
  *  - responses : 설문 응답 (참여자당 한 줄, 문항마다 한 열. 열 이름은 시점_문항번호, 예: T0_q9, T2_q14_1)
- *  - pages     : 설문 페이지 제출 기록 (페이지별 응답 시간)
- *  - events    : 행동 기록 (브라우저가 30초마다 모아 보낸 묶음 하나 = 한 줄, 행동들은 events_json 칸에)
+ *  - pages     : (쓰지 않음) 예전 설문 페이지 제출 기록 — 페이지별 응답 시간은 responses의 T0_ms·T1_ms·T2_ms 열
+ *  - events    : 행동 기록 (참여자당 한 줄, 행동들은 events_1 칸부터 이어서 JSON으로)
  *  - events_flat: 메뉴 [연구 도구 → 행동 기록 펼치기]를 누르면 생김 — 한 행동 = 한 줄, 참여자별 시간 순·접기 (분석은 이 탭으로)
  *  - errors    : 저장 중 오류가 나면 내용이 남아요 (정상이면 생기지 않아요)
  * 머리글(1행) 칸에 마우스를 올리면 한글 설명이 보여요.
@@ -32,7 +32,8 @@
  *
  * 한꺼번에 몰릴 때 (업체 배포)
  *  - 구글 웹 앱은 '실행 사용자: 나' 계정 하나로 동시에 30개까지만 실행돼요. 그래서 요청 하나하나를 짧게, 서로 기다리지 않게 만들었어요.
- *    · 설문·완료·행동 기록: 순서 대기 없이 저장 (pages·events는 줄 추가, responses·assign은 자기 줄의 해당 칸만 고침)
+ *    · 설문·완료·행동 기록: 순서 대기 없이 저장 (assign·responses·events는 배정 때 만든 자기 줄의 해당 칸만 고침)
+ *    · 새 줄은 appendRow를 쓰지 않고 순서 구간에서 줄 번호만 예약 → 쓰기는 밖에서 (appendRow를 동시에 부르면 줄이 덮여 사라짐)
  *    · 조건 배정: 번호·인원 계산만 순서대로(시트 대신 스크립트 속성 메모를 읽어 수십 ms) → 줄 추가는 순서 밖에서
  *    · 순서가 꼭 필요한 건 새 줄·새 열 만들기뿐 (LOCAL 참여자, 첫 응답의 문항 열) — 못 받으면 '바쁨' → 페이지가 다시 보냄
  *  - 진행 상태(이탈 판정·색)는 요청 때 다시 계산하지 않아요. 메뉴 [상태 새로고침] 또는 [상태 자동 새로고침 켜기]를 쓰세요.
@@ -51,7 +52,7 @@ const HEAD = {
   assign: ['pid', 'cond', 'status', 'started_at', 'completed', 'completed_at', 'code', 'device_key',
     'last_page', 'last_stage', 'last_screen', 'last_seen'],
   pages: ['received_at', 'pid', 'cond', 'page', 'page_ms', 'answers_json'],
-  events: ['received_at', 'pid', 'cond', 'n', 't_from', 't_to', 'last_stage', 'last_screen', 'events_json'],   // 보낸 묶음 하나 = 한 줄 (몰릴 때 서버 부담↓)
+  events: ['pid', 'cond', 'n', 'first_at', 'last_at', 'last_stage', 'last_screen', 'events_1', 'events_2', 'events_3', 'events_4', 'events_5'],   // 참여자당 한 줄 (자기 줄에만 이어 씀 · 칸마다 4만 자)
   events_flat: ['received_at', 'pid', 'cond', 't_ms', 'client_ts', 'type', 'stage', 'screen', 'data_json'],   // 메뉴 '행동 기록 펼치기'로 만드는 한 행동 = 한 줄
   summary: ['pid', 'cond', 'completed_at', 'layout', 'touch', 'screen_w', 'screen_h',
     'home_ms', 'home_taps', 'notice_ms', 'notice_early_taps', 'explore_ms', 'seen', 'carousel_moves',
@@ -71,9 +72,9 @@ const NOTE = {
   page_ms: '그 설문 페이지에 머문 시간 (밀리초, 1000 = 1초)', answers_json: '그 페이지의 응답 원본',
   t_ms: '참여 시작부터 지난 시간 (밀리초)', client_ts: '참여자 기기의 시각', type: '행동 종류 (예: tap, screen_enter, notice_show)',
   stage: '진행 단계 (home=원 서비스 홈, tab=추천 탭, travel=씽킹트래블, end=종료)', screen: '그때 보고 있던 앱 화면',
-  data_json: '행동의 세부 내용 (누른 버튼, 머문 시간 등)', n: '이 줄에 담긴 행동 수 (브라우저가 30초마다·창을 닫을 때 모아 보낸 묶음)',
+  data_json: '행동의 세부 내용 (누른 버튼, 머문 시간 등)', n: '이 참여자의 행동 기록 수', first_at: '첫 행동 기록이 들어온 시각', last_at: '마지막 행동 기록이 들어온 시각', events_1: '행동 기록 (JSON 배열 · 칸이 차면 events_2, events_3 … 으로 이어짐). 한 행동 = 한 줄로 보려면 메뉴 [행동 기록 펼치기]', events_2: '행동 기록 이어서', events_3: '행동 기록 이어서', events_4: '행동 기록 이어서', events_5: '행동 기록 이어서',
   t_from: '묶음 첫 행동의 시각 (참여 시작부터 밀리초)', t_to: '묶음 마지막 행동의 시각 (참여 시작부터 밀리초)',
-  events_json: '묶음 속 행동 전체 (JSON 배열). 한 행동 = 한 줄로 보려면 메뉴 [연구 도구 → 행동 기록 펼치기] → events_flat 탭', updated_at: '응답이 마지막으로 저장된 시각',
+  events_json: '(예전 형식) 묶음 속 행동 전체', updated_at: '응답이 마지막으로 저장된 시각',
   layout: '화면 방식 (framed=PC에서 폰 틀 안, mobile-full=휴대폰 전체 화면)', touch: '터치 기기 여부',
   screen_w: '브라우저 화면 너비 (px)', screen_h: '브라우저 화면 높이 (px)',
   home_ms: '1단계 홈 화면 탐색 시간 (밀리초)', home_taps: '1단계에서 누른 횟수',
@@ -136,13 +137,16 @@ function doGet() { return json_({ ok: true, msg: 'DCC endpoint is running' }); }
 //   처음 한 번만 assign 탭을 읽어 메모를 만들고, 시트에서 줄을 지웠다면 메뉴 [배정 기록 다시 읽기]로 다시 만들어요.
 const AC_ = k => HEAD.assign.indexOf(k);
 function aRow_(o) { return HEAD.assign.map(k => o[k] === undefined ? '' : o[k]); }
-const ST_KEY = 'assign_state_v1';
+const ST_KEY = 'assign_state_v2';
+const ROW_SHEETS = ['assign', 'responses', 'events', 'summary'];   // 새 줄을 '예약'해서 쓰는 탭 (appendRow를 동시에 쓰면 줄이 덮여 사라짐 — 11/27 시험에서 확인)
 function loadState_(props) {
   const raw = props.getProperty(ST_KEY);
   if (raw) return JSON.parse(raw);
-  const st = { n: {}, done: {}, live: [] };
+  const st = { n: {}, done: {}, live: [], rows: {}, max: {} };
   CONDS.forEach(c => { st.done[c] = 0; });
-  const sh = sheet_('assign'); const H = HEAD.assign; const n = sh.getLastRow() - 1;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ROW_SHEETS.forEach(name => { const sh = name === 'responses' ? respSheetNoLock_() : sheetNoLock_(name); st.rows[name] = sh.getLastRow() + 1; st.max[name] = sh.getMaxRows(); });
+  const sh = ss.getSheetByName('assign'); const H = HEAD.assign; const n = sh.getLastRow() - 1;
   if (n > 0) sh.getRange(2, 1, n, H.length).getValues().forEach(r => {
     const id = String(r[0]); const m = id.match(/^([A-Z]+)(\d+)$/);
     if (m) st.n[m[1]] = Math.max(st.n[m[1]] || 0, Number(m[2]));
@@ -153,6 +157,27 @@ function loadState_(props) {
     else if (s0) st.live.push([r[1], new Date(s0).getTime(), id]);
   });
   return st;
+}
+// 순서 구간 안에서만 부름: 탭의 다음 빈 줄 번호를 하나 받음 (모자라면 줄을 늘림)
+function reserve_(st, name) {
+  const row = st.rows[name]; st.rows[name] = row + 1;
+  if (row > st.max[name]) {
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+    sh.insertRowsAfter(sh.getMaxRows(), 1000); st.max[name] = sh.getMaxRows();
+  }
+  return row;
+}
+// 새 줄 하나 쓰기 (LOCAL 참여자·완료 요약 등): 순서 구간에서 줄 번호만 받고(이미 있으면 그 줄) 쓰기는 밖에서
+function newRow_(name, vals, pid) {
+  const sh = name === 'responses' ? respSheet_() : sheet_(name);
+  const got = withLock_(15000, () => {
+    if (pid) { const r0 = findRow_(sh, pid); if (r0 > 0) return { row: r0, had: true }; }
+    const props = PropertiesService.getScriptProperties(); const st = loadState_(props);
+    const row = reserve_(st, name); props.setProperty(ST_KEY, JSON.stringify(st));
+    return { row: row, had: false };
+  });
+  if (!got.had) sh.getRange(got.row, 1, 1, vals.length).setValues([vals]);
+  return got;
 }
 function assign_(d) {
   const props = PropertiesService.getScriptProperties();
@@ -176,14 +201,18 @@ function assign_(d) {
     pool = pool.filter(c => live[c] === minLive);
     const cond = pool[Math.floor(Math.random() * pool.length)];
     if (!isTest) st.live.push([cond, nowMs, pid]);
+    const rows = { assign: reserve_(st, 'assign'), responses: reserve_(st, 'responses'), events: reserve_(st, 'events') };
     props.setProperty(ST_KEY, JSON.stringify(st));
     if (d.key) props.setProperty('k_' + d.key, pid + '|' + cond);
-    return { pid: pid, cond: cond, done: st.done, live: live };
+    return { pid: pid, cond: cond, done: st.done, live: live, rows: rows };
   });
   if (r.again) return Object.assign({ ok: true }, r);
-  // 줄 추가는 순서 구간 밖에서 (appendRow는 겹쳐 써지지 않음)
-  sheet_('assign').appendRow(aRow_({ pid: r.pid, cond: r.cond, status: '미시작', started_at: at, completed: false, device_key: d.key || '', last_seen: at }));
-  respSheet_().appendRow([r.pid, r.cond, at]);   // responses 줄을 미리 만들어 둠 → 설문 저장은 순서 대기 없이 자기 줄만 고침
+  delete r.again;
+  // 예약한 줄에 쓰기 (서로 다른 줄이라 겹치지 않음). responses·events 줄도 미리 만들어 둠 → 이후 저장은 자기 줄만 고침
+  const A = aRow_({ pid: r.pid, cond: r.cond, status: '미시작', started_at: at, completed: false, device_key: d.key || '', last_seen: at });
+  sheet_('assign').getRange(r.rows.assign, 1, 1, A.length).setValues([A]);
+  respSheet_().getRange(r.rows.responses, 1, 1, 3).setValues([[r.pid, r.cond, at]]);
+  sheet_('events').getRange(r.rows.events, 1, 1, 5).setValues([[r.pid, r.cond, 0, '', '']]);
   return { ok: true, pid: r.pid, cond: r.cond, done: r.done, live: r.live };
 }
 // 완료자 수 +1 (조건 배정용 메모)
@@ -197,58 +226,70 @@ function markDone_(pid, cond) {
   } catch (err) { logError_(err); }
 }
 // 테스트 기록 지우기: pid가 TEST로 시작하거나 LOCAL-LOADT(몰림 시험)인 줄을 모든 탭에서 지우고 배정 메모를 다시 만듦
+//   KEEP_TEST에 적은 번호는 남겨요. 예전 묶음 형식 events 줄은 참여자당 한 줄로 바꾸고, 시험용 열(T0_lt0 등)은 지워요.
+const KEEP_TEST = ['TEST001'];
 function clearTestRows() {
-  const isTest = id => /^TEST/.test(String(id)) || /^LOCAL-LOADT/.test(String(id));
+  const isTest = id => (/^TEST/.test(String(id)) && KEEP_TEST.indexOf(String(id)) < 0) || /^LOCAL-LOADT/.test(String(id));
   const ss = SpreadsheetApp.getActiveSpreadsheet(); const out = [];
   withLock_(60000, () => {
     ['assign', 'pages', 'responses', 'summary', 'events', 'events_flat'].forEach(name => {
       const sh = ss.getSheetByName(name); if (!sh) return;
       const n = sh.getLastRow() - 1, w = sh.getLastColumn(); if (n < 1) return;
-      const col = name === 'assign' || name === 'responses' || name === 'summary' ? 0 : 1;   // pid 열
+      const head = sh.getRange(1, 1, 1, w).getValues()[0].map(String);
       const rows = sh.getRange(2, 1, n, w).getValues();
-      const keep = rows.filter(r => !isTest(r[col]));
-      if (keep.length === rows.length) return;
+      if (name === 'events' && head[0] === 'received_at') { const m = migrateOldEvents_(sh, isTest); out.push('events ' + (m.before) + '줄 → 참여자당 한 줄 ' + m.after + '줄'); return; }
+      const col = (name === 'pages' || name === 'events_flat') ? 1 : 0;   // pid 열
+      const keep = rows.filter(r => r[col] !== '' && !isTest(r[col]));
+      const junk = head.map((h, i) => /_lt\d+$/.test(h) ? i : -1).filter(i => i >= 0);   // 시험용 열
+      if (keep.length === rows.length && !junk.length) return;
       sh.getRange(2, 1, n, w).clearContent();
       if (keep.length) sh.getRange(2, 1, keep.length, w).setValues(keep);
-      out.push(name + ' ' + (rows.length - keep.length) + '줄');
+      if (n > keep.length) sh.getRange(2 + keep.length, 1, n - keep.length, w).clearFormat();   // 지운 줄의 상태 색 등
+      junk.reverse().forEach(i => sh.deleteColumn(i + 1));
+      out.push(name + ' ' + (rows.length - keep.length) + '줄' + (junk.length ? ' · 시험용 열 ' + junk.length + '개' : ''));
     });
   });
   resetAssignState(); try { refreshStatus(); } catch (_) {}
-  try { SpreadsheetApp.getActive().toast(out.length ? '지운 줄: ' + out.join(', ') : '지울 테스트 기록이 없어요.', '연구 도구', 8); } catch (_) {}
+  try { SpreadsheetApp.getActive().toast(out.length ? '정리: ' + out.join(', ') : '지울 테스트 기록이 없어요.', '연구 도구', 10); } catch (_) {}
+  return out;
 }
 // 시트에서 줄을 지운 뒤(예: TEST 줄 정리) 배정 메모를 assign 탭 기준으로 다시 만듦
 function resetAssignState() {
   withLock_(30000, () => {
     const props = PropertiesService.getScriptProperties();
-    Object.keys(props.getProperties()).forEach(k => { if (k === ST_KEY || /^k_/.test(k)) props.deleteProperty(k); });
+    Object.keys(props.getProperties()).forEach(k => { if (/^assign_state_/.test(k) || /^k_/.test(k)) props.deleteProperty(k); });
+    CacheService.getScriptCache().removeAll(['resp_hdr'].concat(ROW_SHEETS.map(n => 'hdr2_' + n)));
     props.setProperty(ST_KEY, JSON.stringify(loadState_(props)));
   });
   try { SpreadsheetApp.getActive().toast('assign 탭 기준으로 배정 기록을 다시 읽었어요.', '연구 도구', 5); } catch (_) {}
 }
 
 /* ---------- 설문 페이지 ---------- */
-// 순서 대기 없이 저장: pages는 appendRow, responses는 배정 때 만든 자기 줄의 그 페이지 칸만 고침
+// 순서 대기 없이 저장: 배정 때 만든 responses 자기 줄의 그 페이지 칸만 고침 (페이지 체류 시간은 {페이지}_ms 열)
+// pages 탭(예전 제출 기록)은 쓰지 않아요 — 동시에 줄을 추가하면 덮여서 사라지기 때문
 function savePage_(d) {
   ensureLocalRow_(d);
-  sheet_('pages').appendRow([new Date(), d.pid, d.cond, d.page, d.page_ms, JSON.stringify(d.answers)]);
-  saveResponses_(d);
+  const ans = Object.assign({}, d.answers || {});
+  if (d.page && d.page !== 'recover' && d.page_ms !== undefined) ans[d.page + '_ms'] = d.page_ms;
+  saveResponses_(Object.assign({}, d, { answers: ans }));
   touchCells_(d.pid, { last_page: d.page, last_screen: 'survey:' + d.page }, true);
 }
 
 // responses: 참여자당 한 줄, 문항마다 한 열. 문항 칸에는 문항 문구가 설명으로 붙어요.
 function respSheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName('responses');
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('responses');
   if (sh && sh.getLastRow() > 0) return sh;
-  return withLock_(15000, () => {
-    sh = ss.getSheetByName('responses') || ss.insertSheet('responses');
-    if (sh.getLastRow() === 0) {
-      sh.appendRow(['pid', 'cond', 'updated_at']);
-      sh.getRange(1, 1, 1, 3).setNotes([[NOTE.pid, NOTE.cond, NOTE.updated_at]]);
-      sh.setFrozenRows(1);
-    }
-    return sh;
-  });
+  return withLock_(15000, respSheetNoLock_);
+}
+function respSheetNoLock_() {   // 순서 구간 안에서 부름
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName('responses') || ss.insertSheet('responses');
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, 3).setValues([['pid', 'cond', 'updated_at']]);
+    sh.getRange(1, 1, 1, 3).setNotes([[NOTE.pid, NOTE.cond, NOTE.updated_at]]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
 }
 function respHeader_(sh, fresh) {
   const c = CacheService.getScriptCache();
@@ -261,6 +302,7 @@ function saveResponses_(d) {
   const keys = Object.keys(d.answers || {}); if (!keys.length) return;
   const sh = respSheet_();
   let header = respHeader_(sh);
+  if (keys.some(k => header.indexOf(k) < 0)) header = respHeader_(sh, true);   // 다른 사람이 방금 만든 열일 수 있으니 먼저 다시 읽기
   if (keys.some(k => header.indexOf(k) < 0)) {   // 새 문항 열: 한 명만 만들도록 순서대로
     header = withLock_(15000, () => {
       let h = respHeader_(sh, true);
@@ -276,9 +318,7 @@ function saveResponses_(d) {
     });
   }
   let row = findRow_(sh, d.pid);
-  if (row < 0) {   // 배정 줄이 없는 참여자(LOCAL 등): 한 명만 줄을 만들도록
-    row = withLock_(15000, () => { let r0 = findRow_(sh, d.pid); if (r0 < 0) { sh.appendRow([d.pid, d.cond, new Date()]); r0 = findRow_(sh, d.pid); } return r0; });
-  }
+  if (row < 0) row = newRow_('responses', [d.pid, d.cond, new Date()], d.pid).row;   // 배정 줄이 없는 참여자(LOCAL 등)
   const cols = keys.map(k => header.indexOf(k)).filter(c => c >= 0);
   const a = Math.min.apply(null, cols), z = Math.max.apply(null, cols);
   const rng = sh.getRange(row, a + 1, 1, z - a + 1);   // 이 페이지 문항이 있는 칸만 (다른 페이지 칸은 건드리지 않음)
@@ -296,11 +336,8 @@ function complete_(d) {
   const sh = sheet_('assign');
   let row = findRow_(sh, d.pid), first = false;
   if (row < 0) {
-    row = withLock_(15000, () => {
-      if (findRow_(sh, d.pid) > 0) return findRow_(sh, d.pid);
-      sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '완료', completed: true, completed_at: new Date(), code: d.code || '', last_seen: new Date() }));
-      first = true; return -2;
-    });
+    const g = newRow_('assign', aRow_({ pid: d.pid, cond: d.cond, status: '완료', completed: true, completed_at: new Date(), code: d.code || '', last_seen: new Date() }), d.pid);
+    if (g.had) row = g.row; else { first = true; row = -2; }
   }
   if (row > 0) {
     const cc = AC_('completed') + 1;   // completed · completed_at · code는 붙어 있음
@@ -327,7 +364,7 @@ function complete_(d) {
   });
   const j = findRow_(S, d.pid);
   if (j > 0) S.getRange(j, 1, 1, vals.length).setValues([vals]);
-  else withLock_(15000, () => { const k = findRow_(S, d.pid); if (k > 0) S.getRange(k, 1, 1, vals.length).setValues([vals]); else S.appendRow(vals); });
+  else { const g = newRow_('summary', vals, d.pid); if (g.had) S.getRange(g.row, 1, 1, vals.length).setValues([vals]); }
 }
 
 // 서버 배정에 실패한 LOCAL 참여자: 첫 기록이 들어올 때 assign에 줄을 만들어 둠 (started_at = 첫 설문 제출 시각)
@@ -335,26 +372,38 @@ function ensureLocalRow_(d) {
   if (!/^LOCAL-/.test(String(d.pid || '')) || CONDS.indexOf(d.cond) < 0) return;
   const sh = sheet_('assign');
   if (findRow_(sh, d.pid) > 0) return;
-  withLock_(15000, () => {
-    if (findRow_(sh, d.pid) > 0) return;
-    const at = new Date();
-    sh.appendRow(aRow_({ pid: d.pid, cond: d.cond, status: '미시작', started_at: at, completed: false, last_seen: at }));
-  });
+  const at = new Date();
+  newRow_('assign', aRow_({ pid: d.pid, cond: d.cond, status: '미시작', started_at: at, completed: false, last_seen: at }), d.pid);
 }
 
 /* ---------- 진행 상태 (assign) ---------- */
 const STATUS_COLOR = { '미시작': '#f1f3f4', '진행 중': '#e8f0fe', '이탈': '#fce8e6', '완료': '#e6f4ea' };
 // 참여자 한 명의 마지막 위치를 갱신 (status는 refreshStatus_가 계산)
-// 잠금 없이 저장하는 행동 기록: 한 줄씩 appendRow(겹쳐 써지지 않음) + 진행 상태는 해당 칸만 고침
+// 행동 목록을 칸마다 4만 자 이하로 나눠 row[j]부터 채움 (구글 시트 칸은 5만 자까지). 마지막 칸을 넘으면 나머지는 버림
+function packEvents_(row, j, cN, evs) {
+  const cells = []; let cur = [], len = 2;
+  evs.forEach(ev => { const n = JSON.stringify(ev).length + 1; if (cur.length && len + n > 40000) { cells.push(cur); cur = []; len = 2; } cur.push(ev); len += n; });
+  if (cur.length) cells.push(cur);
+  cells.forEach((c, k) => { if (j + k <= cN) row[j + k] = JSON.stringify(c); });
+}
+// 행동 기록: 배정 때 만든 events 자기 줄에 이어 씀 (칸이 4만 자를 넘으면 다음 칸) — 순서 대기 없음
 function saveEventsFree_(d) {
-  const evs = d.events || []; if (!evs.length) return;
-  const sh = sheet_('events'), recv = new Date();
-  const chunks = []; let cur = [], len = 2;   // 칸 하나에 4만 자까지 — 넘으면 여러 줄로 나눔
-  evs.forEach(ev => { const n = JSON.stringify(ev).length + 1; if (cur.length && len + n > 40000) { chunks.push(cur); cur = []; len = 2; } cur.push(ev); len += n; });
-  if (cur.length) chunks.push(cur);
-  chunks.forEach(c => { const z = c[c.length - 1]; sh.appendRow([recv, d.pid, d.cond, c.length, c[0].t, z.t, z.stage || '', z.screen || '', JSON.stringify(c)]); });
+  const evs = d.events || []; if (!evs.length || !d.pid) return;
+  const sh = sheet_('events'), H = HEAD.events, now = new Date();
+  let row = findRow_(sh, d.pid);
+  if (row < 0) row = newRow_('events', [d.pid, d.cond, 0, '', ''], d.pid).row;   // LOCAL 참여자 등
+  const cur = sh.getRange(row, 1, 1, H.length).getValues()[0];
+  const c0 = H.indexOf('events_1'), cN = H.length - 1;
+  let j = c0; for (let c = cN; c >= c0; c--) if (cur[c] !== '' && cur[c] !== null) { j = c; break; }
+  let arr = []; try { arr = cur[j] ? JSON.parse(cur[j]) : []; } catch (_) { arr = []; }
+  packEvents_(cur, j, cN, arr.concat(evs));
+  cur[H.indexOf('n')] = (Number(cur[H.indexOf('n')]) || 0) + evs.length;
+  if (!cur[H.indexOf('first_at')]) cur[H.indexOf('first_at')] = now;
+  cur[H.indexOf('last_at')] = now;
   const last = evs[evs.length - 1];
   const scr = /^survey_/.test(last.type) && last.page ? 'survey:' + last.page : (last.screen || '');   // 설문 중이면 설문 페이지 이름
+  cur[H.indexOf('last_stage')] = last.stage || ''; cur[H.indexOf('last_screen')] = scr;
+  sh.getRange(row, 1, 1, H.length).setValues([cur]);
   touchCells_(d.pid, { last_stage: last.stage || '', last_screen: scr });
 }
 // 행 전체를 다시 쓰지 않고 필요한 칸만 씀 (잠금 없이 써도 완료 표시 등을 덮어쓰지 않게)
@@ -417,20 +466,17 @@ function rebuildStatus() {
     const n = sh.getLastRow() - 1; if (n < 1) return;
     const rows = sh.getRange(2, 1, n, H.length).getValues();
     const info = {};
-    const pg = sheet_('pages'); const pn = pg.getLastRow() - 1;
-    if (pn > 0) pg.getRange(2, 1, pn, 4).getValues().forEach(([at, pid, , page]) => {
-      const o = info[pid] = info[pid] || {}; o.last_page = page; o.page_at = at; if (!o.seen || at > o.seen) o.seen = at;
+    const rs = respSheet_(); const rh = respHeader_(rs, true); const rn = rs.getLastRow() - 1;
+    if (rn > 0) rs.getRange(2, 1, rn, rh.length).getValues().forEach(r => {
+      const o = info[r[0]] = info[r[0]] || {};
+      ['T0', 'T1', 'T2'].forEach(pgId => { const c = rh.indexOf(pgId + '_ms'); if (c >= 0 && r[c] !== '') o.last_page = pgId; });
+      if (r[2] && (!o.seen || r[2] > o.seen)) o.seen = r[2];
     });
-    const ev = sheet_('events'); const en = ev.getLastRow() - 1;
-    if (en > 0) ev.getRange(2, 1, en, 9).getValues().forEach(([at, pid, , , , , stage, screen, js]) => {
-      const o = info[pid] = info[pid] || {};
-      if (!o.ev_at || at >= o.ev_at) {
-        o.ev_at = at; o.last_stage = stage;
-        let scr = screen;
-        try { const arr = JSON.parse(js || '[]'), z = arr[arr.length - 1]; if (z && /^survey_/.test(z.type) && z.page) scr = 'survey:' + z.page; } catch (_) {}
-        o.last_screen = scr;
-      }
-      if (!o.seen || at > o.seen) o.seen = at;
+    const ev = sheet_('events'); const EH = HEAD.events; const en = ev.getLastRow() - 1;
+    if (en > 0) ev.getRange(2, 1, en, EH.length).getValues().forEach(r => {
+      if (!r[0]) return; const o = info[r[0]] = info[r[0]] || {};
+      o.last_stage = r[EH.indexOf('last_stage')]; o.last_screen = r[EH.indexOf('last_screen')];
+      const at = r[EH.indexOf('last_at')]; if (at && (!o.seen || at > o.seen)) o.seen = at;
     });
     rows.forEach(r => {
       const o = info[r[0]]; if (!o) return;
@@ -465,15 +511,16 @@ function onOpen() {
 // events(묶음 한 줄)를 펼쳐 events_flat 탭에 한 행동 = 한 줄로 다시 씀 (참여자 번호 → 시간 순, 중복 전송은 한 번만)
 // 수집 중에 실행해도 돼요. 실행할 때마다 events_flat을 처음부터 다시 만들어요.
 function flattenEvents() {
-  const src = sheet_('events'), n0 = src.getLastRow() - 1;
+  const src = sheet_('events'), H = HEAD.events, n0 = src.getLastRow() - 1;
   const out = [], seen = {};
-  if (n0 > 0) src.getRange(2, 1, n0, 9).getValues().forEach(([at, pid, cond, , , , , , js]) => {
-    let arr = []; try { arr = JSON.parse(js || '[]'); } catch (_) {}
-    arr.forEach(ev => {
-      const key = pid + '|' + ev.t + '|' + ev.type + '|' + ev.ts; if (seen[key]) return; seen[key] = 1;
-      const rest = {}; Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
-      out.push([at, pid, cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)]);
-    });
+  const push = (at, pid, cond, ev) => {
+    const key = pid + '|' + ev.t + '|' + ev.type + '|' + ev.ts; if (seen[key]) return; seen[key] = 1;
+    const rest = {}; Object.keys(ev).forEach(k => { if (['t', 'ts', 'type', 'stage', 'screen'].indexOf(k) < 0) rest[k] = ev[k]; });
+    out.push([at, pid, cond, ev.t, ev.ts, ev.type, ev.stage, ev.screen, JSON.stringify(rest)]);
+  };
+  if (n0 > 0) src.getRange(2, 1, n0, H.length).getValues().forEach(r => {
+    if (!r[0]) return;
+    for (let c = H.indexOf('events_1'); c < H.length; c++) { let arr = []; try { arr = r[c] ? JSON.parse(r[c]) : []; } catch (_) {} arr.forEach(ev => push(r[H.indexOf('last_at')], r[0], r[1], ev)); }
   });
   out.sort((a, b) => String(a[1]) < String(b[1]) ? -1 : String(a[1]) > String(b[1]) ? 1 : a[3] - b[3]);
   const sh = sheet_('events_flat');
@@ -521,25 +568,46 @@ function sheet_(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const cache = CacheService.getScriptCache();
   let sh = ss.getSheetByName(name);
-  if (sh && cache.get('hdr_' + name)) return sh;   // 몰릴 때 부담을 줄이려고 머리글 확인은 10분에 한 번
-  if (!sh) {
-    sh = withLock_(15000, () => {
-      let s0 = ss.getSheetByName(name);
-      if (!s0) { s0 = ss.insertSheet(name); s0.appendRow(header); }
-      return s0;
-    });
-  }
+  if (sh && cache.get('hdr2_' + name)) return sh;   // 몰릴 때 부담을 줄이려고 머리글 확인은 10분에 한 번
+  if (!sh) sh = withLock_(15000, () => sheetNoLock_(name));
   if (sh.getLastRow() === 0) {
-    sh.appendRow(header);
+    sh.getRange(1, 1, 1, header.length).setValues([header]);
   } else {
     const first = sh.getRange(1, 1, 1, header.length).getValues()[0].map(String);
+    if (name === 'events' && first[0] === 'received_at') {   // 예전 형식이면 한 명만 바꾸도록
+      withLock_(30000, () => { if (String(sh.getRange(1, 1).getValue()) === 'received_at') migrateOldEvents_(sh); });
+      cache.put('hdr2_' + name, '1', 600); return sh;
+    }
     if (first[0] !== header[0]) { sh.insertRowBefore(1); sh.getRange(1, 1, 1, header.length).setValues([header]); }
     else if (first.join('|') !== header.join('|')) sh.getRange(1, 1, 1, header.length).setValues([header]);
-    else if (sh.getRange(1, 1).getNote()) { cache.put('hdr_' + name, '1', 600); return sh; }   // 머리글·설명이 이미 있으면 그대로
+    else if (sh.getRange(1, 1).getNote()) { cache.put('hdr2_' + name, '1', 600); return sh; }   // 머리글·설명이 이미 있으면 그대로
   }
   sh.getRange(1, 1, 1, header.length).setNotes([header.map(h => NOTE[h] || '')]).setFontWeight('bold');
   sh.setFrozenRows(1);
-  cache.put('hdr_' + name, '1', 600);
+  cache.put('hdr2_' + name, '1', 600);
+  return sh;
+}
+// 예전 events(묶음 한 줄) 형식을 참여자당 한 줄로 바꿈 — 순서 구간 안에서 부름
+function migrateOldEvents_(sh, dropId) {
+  const n = sh.getLastRow() - 1, w0 = sh.getLastColumn(); const H = HEAD.events;
+  const rows = n > 0 ? sh.getRange(2, 1, n, w0).getValues() : [];
+  const by = {}, order = [];
+  rows.forEach(r => { if (!r[1] || (dropId && dropId(r[1]))) return;
+    let o = by[r[1]]; if (!o) { o = by[r[1]] = { cond: r[2], evs: [], first: r[0], last: r[0], st: r[6], sc: r[7] }; order.push(r[1]); }
+    try { o.evs = o.evs.concat(JSON.parse(r[8] || '[]')); } catch (_) {}
+    if (r[0] >= o.last) { o.last = r[0]; o.st = r[6]; o.sc = r[7]; } });
+  const w = Math.max(w0, H.length);
+  const out = order.map(pid => { const o = by[pid]; const row = [pid, o.cond, o.evs.length, o.first, o.last, o.st, o.sc]; while (row.length < w) row.push(''); packEvents_(row, H.indexOf('events_1'), H.length - 1, o.evs); return row; });
+  sh.getRange(1, 1, Math.max(n, 0) + 1, w).clearContent();
+  sh.getRange(1, 1, 1, H.length).setValues([H]); sh.getRange(1, 1, 1, H.length).setNotes([H.map(h => NOTE[h] || '')]).setFontWeight('bold');
+  if (out.length) sh.getRange(2, 1, out.length, w).setValues(out);
+  return { before: rows.length, after: out.length };
+}
+function sheetNoLock_(name) {   // 순서 구간 안에서 부름: 탭이 없으면 만들고 머리글을 씀
+  const ss = SpreadsheetApp.getActiveSpreadsheet(); const header = HEAD[name];
+  let sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  if (sh.getLastRow() === 0) { sh.getRange(1, 1, 1, header.length).setValues([header]); sh.getRange(1, 1, 1, header.length).setNotes([header.map(h => NOTE[h] || '')]).setFontWeight('bold'); sh.setFrozenRows(1); }
   return sh;
 }
 function json_(o) {
